@@ -1,46 +1,59 @@
-import { type Context, ponder } from "ponder:registry";
+import { type Context, type Event, ponder } from "ponder:registry";
 import { resolvers } from "ponder:schema";
-import { accounts, domains } from "ponder:schema";
-import { type Address, type Hex, concat, keccak256, zeroAddress } from "viem";
+import { domains } from "ponder:schema";
+import { type Hex, zeroAddress } from "viem";
+import {
+	NAMEHASH_ZERO,
+	encodeLabelhash,
+	makeSubnodeNamehash,
+} from "./lib/ens-helpers";
+import { ensureAccount } from "./lib/ensure";
 import { makeResolverId } from "./lib/ids";
 
-// TODO: pull from ens utils lib or something
-// export const NAMEHASH_ETH =
-// 	"0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae";
-export const NAMEHASH_ZERO =
-	"0x0000000000000000000000000000000000000000000000000000000000000000";
-
-// TODO: this should probably be a part of some ens util lib
-const makeSubnodeNamehash = (node: Hex, label: Hex) =>
-	keccak256(concat([node, label]));
-
-// https://github.com/wevm/viem/blob/main/src/utils/ens/encodeLabelhash.ts
-const encodeLabelhash = (hash: Hex): `[${string}]` => `[${hash.slice(2)}]`;
-
-async function ensureAccount(context: Context, address: Address) {
-	return await context.db
-		.insert(accounts)
-		.values({ id: address })
-		.onConflictDoNothing();
+// a domain is migrated iff it exists and isMigrated is set to true, otherwise it is not
+async function isDomainMigrated(context: Context, node: Hex) {
+	const domain = await context.db.find(domains, { id: node });
+	return domain?.isMigrated ?? false;
 }
 
-ponder.on("Registry:setup", async ({ context }) => {
-	// ensure we have an account for the zeroAddress
-	await ensureAccount(context, zeroAddress);
+function isDomainEmpty(domain: typeof domains.$inferSelect) {
+	return (
+		domain.resolverId === null &&
+		domain.ownerId === zeroAddress &&
+		domain.subdomainCount === 0
+	);
+}
 
-	// ensure we have a root Domain, owned by the zeroAddress
-	await context.db
-		.insert(domains)
-		.values({
-			id: NAMEHASH_ZERO,
-			ownerId: zeroAddress,
-			createdAt: 0n,
-			isMigrated: true,
-		})
-		.onConflictDoNothing();
-});
+// a more accurate name for the following function
+// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L64
+async function recursivelyRemoveEmptyDomainFromParentSubdomainCount(
+	context: Context,
+	node: Hex,
+) {
+	const domain = await context.db.find(domains, { id: node });
+	if (!domain) return; // shouldn't happen
 
-ponder.on("Registry:Transfer", async ({ context, event }) => {
+	if (isDomainEmpty(domain) && domain.parentId !== null) {
+		// decrement parent's subdomain count
+		await context.db
+			.update(domains, { id: domain.parentId })
+			.set((row) => ({ subdomainCount: row.subdomainCount - 1 }));
+
+		// recurse to parent
+		return recursivelyRemoveEmptyDomainFromParentSubdomainCount(
+			context,
+			domain.parentId,
+		);
+	}
+}
+
+async function _handleTransfer({
+	context,
+	event,
+}: {
+	context: Context;
+	event: Event<"Registry:Transfer">;
+}) {
 	const { node, owner } = event.args;
 
 	// ensure owner account
@@ -53,49 +66,74 @@ ponder.on("Registry:Transfer", async ({ context, event }) => {
 		.onConflictDoUpdate({ ownerId: owner });
 
 	// TODO: log DomainEvent
-});
+}
 
-ponder.on("Registry:NewOwner", async ({ context, event }) => {
-	const { label, node, owner } = event.args;
+const _handleNewOwner =
+	(isMigrated: boolean) =>
+	async ({
+		context,
+		event,
+	}: {
+		context: Context;
+		event: Event<"Registry:NewOwner">;
+	}) => {
+		const { label, node, owner } = event.args;
 
-	const subnode = makeSubnodeNamehash(node, label);
+		const subnode = makeSubnodeNamehash(node, label);
 
-	// ensure owner
-	await ensureAccount(context, owner);
+		// ensure owner
+		await ensureAccount(context, owner);
 
-	// upsert domain owner/parent
-	const domain = await context.db
-		.insert(domains)
-		.values({
-			id: subnode,
-			ownerId: owner,
-			parentId: node,
-			createdAt: event.block.timestamp,
-		})
-		.onConflictDoUpdate({ ownerId: owner });
+		let domain = await context.db.find(domains, { id: subnode });
+		if (domain) {
+			// if the domain already exists, this is just an update of the owner record
+			await context.db
+				.update(domains, { id: domain.id })
+				.set({ ownerId: owner, isMigrated });
+		} else {
+			// otherwise create the domain
+			domain = await context.db.insert(domains).values({
+				id: subnode,
+				ownerId: owner,
+				parentId: node,
+				createdAt: event.block.timestamp,
+				isMigrated,
+			});
 
-	// increment parent subdomainCount
-	await context.db
-		.update(domains, { id: node })
-		.set((row) => ({ subdomainCount: row.subdomainCount + 1 }));
+			// and increment parent subdomainCount
+			await context.db
+				.update(domains, { id: node })
+				.set((row) => ({ subdomainCount: row.subdomainCount + 1 }));
+		}
 
-	// if the domain doesn't yet have a name, construct it here
-	if (!domain.name) {
-		const parent = await context.db.find(domains, { id: node });
+		// if the domain doesn't yet have a name, construct it here
+		if (!domain.name) {
+			const parent = await context.db.find(domains, { id: node });
 
-		// TODO: how to get reverse mapping of labelhash to labelName?
-		// this is likely the known labelhash CSV the graph schema mentioned...
-		// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L111
-		const labelName = encodeLabelhash(label);
-		const name = parent?.name ? `${labelName}.${parent.name}` : labelName;
+			// TODO: how to get reverse mapping of labelhash to labelName?
+			// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L111
+			const labelName = encodeLabelhash(label);
+			const name = parent?.name ? `${labelName}.${parent.name}` : labelName;
 
-		await context.db
-			.update(domains, { id: domain.id })
-			.set({ labelName, name });
-	}
-});
+			await context.db
+				.update(domains, { id: domain.id })
+				.set({ labelName, name });
+		}
 
-ponder.on("Registry:NewTTL", async ({ context, event }) => {
+		// clean up empty domains in their parent's subdomainCount field
+		await recursivelyRemoveEmptyDomainFromParentSubdomainCount(
+			context,
+			domain.id,
+		);
+	};
+
+async function _handleNewTTL({
+	context,
+	event,
+}: {
+	context: Context;
+	event: Event<"Registry:NewTTL">;
+}) {
 	const { node, ttl } = event.args;
 
 	try {
@@ -103,23 +141,30 @@ ponder.on("Registry:NewTTL", async ({ context, event }) => {
 	} catch {
 		// handle the edge case in which the domain no longer exists, which will throw update error
 		// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L215
+		// NOTE: i'm not sure this needs to be
 	}
 
 	// TODO: log DomainEvent
-});
+}
 
-ponder.on("Registry:NewResolver", async ({ context, event }) => {
+async function _handleNewResolver({
+	context,
+	event,
+}: {
+	context: Context;
+	event: Event<"Registry:NewResolver">;
+}) {
 	const { node, resolver: resolverAddress } = event.args;
 
 	// if zeroing out a domain's resolver, simply remove the reference
-	// NOTE: old resolver resources are kept for historical reference
+	// NOTE: old resolver resources are kept for event logs
 	if (event.args.resolver === zeroAddress) {
 		await context.db.update(domains, { id: node }).set({ resolverId: null });
 	} else {
 		// otherwise upsert the resolver and update the domain to point to it
 		const resolverId = makeResolverId(node, resolverAddress);
 
-		await context.db
+		const resolver = await context.db
 			.insert(resolvers)
 			.values({
 				id: resolverId,
@@ -128,8 +173,63 @@ ponder.on("Registry:NewResolver", async ({ context, event }) => {
 			})
 			.onConflictDoNothing();
 
-		await context.db.update(domains, { id: node }).set({ resolverId });
+		await context.db
+			.update(domains, { id: node })
+			.set({ resolverId, resolvedAddress: resolver?.addrId });
 	}
 
 	// TODO: log DomainEvent
+}
+
+// setup on old registry
+ponder.on("RegistryOld:setup", async ({ context }) => {
+	// ensure we have an account for the zeroAddress
+	await ensureAccount(context, zeroAddress);
+
+	// ensure we have a root Domain, owned by the zeroAddress
+	await context.db.insert(domains).values({
+		id: NAMEHASH_ZERO,
+		ownerId: zeroAddress,
+		createdAt: 0n,
+		isMigrated: false,
+	});
 });
+
+// old registry functions are proxied to the current handlers
+// iff the domain has not yet been migrated
+ponder.on("RegistryOld:NewOwner", async ({ context, event }) => {
+	const node = makeSubnodeNamehash(event.args.node, event.args.label);
+	const isMigrated = await isDomainMigrated(context, node);
+	if (isMigrated) return;
+	return _handleNewOwner(false)({ context, event });
+});
+
+ponder.on("RegistryOld:NewResolver", async ({ context, event }) => {
+	// NOTE: the subgraph makes an exception for the root node here
+	// but i don't know that that's necessary, as in ponder our root node starts out
+	// unmigrated and once the NewOwner event is emitted by the new registry,
+	// the root will be considered migrated
+	// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L246
+
+	// otherwise, only handle iff not migrated
+	const isMigrated = await isDomainMigrated(context, event.args.node);
+	if (isMigrated) return;
+	return _handleNewResolver({ context, event });
+});
+
+ponder.on("RegistryOld:NewTTL", async ({ context, event }) => {
+	const isMigrated = await isDomainMigrated(context, event.args.node);
+	if (isMigrated) return;
+	return _handleNewTTL({ context, event });
+});
+
+ponder.on("RegistryOld:Transfer", async ({ context, event }) => {
+	const isMigrated = await isDomainMigrated(context, event.args.node);
+	if (isMigrated) return;
+	return _handleTransfer({ context, event });
+});
+
+ponder.on("Registry:NewOwner", _handleNewOwner(true));
+ponder.on("Registry:NewResolver", _handleNewResolver);
+ponder.on("Registry:NewTTL", _handleNewTTL);
+ponder.on("Registry:Transfer", _handleTransfer);

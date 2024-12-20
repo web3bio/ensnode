@@ -11,13 +11,13 @@ export const domains = onchainTable("domains", (t) => ({
 	// keccak256(labelName)
 	labelhash: t.hex(),
 	// The namehash (id) of the parent name
-	parentId: t.hex(), // TODO: relationship has one domain
+	parentId: t.hex(),
 
 	// The number of subdomains
 	subdomainCount: t.integer("subdomain_count").notNull().default(0),
 
 	// Address logged from current resolver, if any
-	// TODO: implement resolvedAddress by going through resolverId -> addr
+	resolvedAddress: t.hex("resolved_address"),
 
 	// The resolver that controls the domain's settings
 	resolverId: t.text(),
@@ -33,14 +33,12 @@ export const domains = onchainTable("domains", (t) => ({
 	// The account that owns the domain
 	ownerId: t.hex("owner_id").notNull(),
 	// The account that owns the ERC721 NFT for the domain
-	// TODO: has one Account
 	registrantId: t.hex("registrant_id"),
 	// The account that owns the wrapped domain
-	// TODO: has one Account
 	wrappedOwnerId: t.hex("wrapped_owner_id"),
 
 	// The expiry date for the domain, from either the registration, or the wrapped domain if PCC is burned
-	expiryDate: t.bigint(),
+	expiryDate: t.bigint("expiry_date"),
 
 	// The registration associated with the domain
 	// registration: Registration @derivedFrom(field: "domain")
@@ -67,6 +65,14 @@ export const domainRelations = relations(domains, ({ one, many }) => ({
 		references: [resolvers.id],
 	}),
 	subdomains: many(domains, { relationName: "parent" }),
+	registrant: one(accounts, {
+		fields: [domains.registrantId],
+		references: [accounts.id],
+	}),
+	wrappedOwner: one(accounts, {
+		fields: [domains.wrappedOwnerId],
+		references: [accounts.id],
+	}),
 }));
 
 export const accounts = onchainTable("accounts", (t) => ({
