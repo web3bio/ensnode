@@ -31,7 +31,7 @@ async function recursivelyRemoveEmptyDomainFromParentSubdomainCount(
 	node: Hex,
 ) {
 	const domain = await context.db.find(domains, { id: node });
-	if (!domain) return; // shouldn't happen
+	if (!domain) throw new Error(`Domain not found: ${node}`);
 
 	if (isDomainEmpty(domain) && domain.parentId !== null) {
 		// decrement parent's subdomain count
@@ -84,9 +84,10 @@ const _handleNewOwner =
 		// ensure owner
 		await ensureAccount(context, owner);
 
+		// note that we set isMigrated so that if this domain is being interacted with on the new registry, its migration status is set here
 		let domain = await context.db.find(domains, { id: subnode });
 		if (domain) {
-			// if the domain already exists, this is just an update of the owner record
+			// if the domain already exists, this is just an update of the owner record.
 			await context.db
 				.update(domains, { id: domain.id })
 				.set({ ownerId: owner, isMigrated });
@@ -117,10 +118,10 @@ const _handleNewOwner =
 
 			await context.db
 				.update(domains, { id: domain.id })
-				.set({ labelName, name });
+				.set({ name, labelName });
 		}
 
-		// clean up empty domains in their parent's subdomainCount field
+		// garbage collect newly 'empty' domain iff necessary
 		await recursivelyRemoveEmptyDomainFromParentSubdomainCount(
 			context,
 			domain.id,
@@ -141,7 +142,7 @@ async function _handleNewTTL({
 	} catch {
 		// handle the edge case in which the domain no longer exists, which will throw update error
 		// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L215
-		// NOTE: i'm not sure this needs to be
+		// NOTE: i'm not sure this needs to be here, as domains are never deleted (??)
 	}
 
 	// TODO: log DomainEvent
@@ -156,10 +157,13 @@ async function _handleNewResolver({
 }) {
 	const { node, resolver: resolverAddress } = event.args;
 
-	// if zeroing out a domain's resolver, simply remove the reference
+	// if zeroing out a domain's resolver, remove the reference instead of tracking a zeroAddress Resolver
 	// NOTE: old resolver resources are kept for event logs
 	if (event.args.resolver === zeroAddress) {
 		await context.db.update(domains, { id: node }).set({ resolverId: null });
+
+		// garbage collect newly 'empty' domain iff necessary
+		await recursivelyRemoveEmptyDomainFromParentSubdomainCount(context, node);
 	} else {
 		// otherwise upsert the resolver and update the domain to point to it
 		const resolverId = makeResolverId(node, resolverAddress);
