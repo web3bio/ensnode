@@ -10,12 +10,11 @@
 ### todo
 
 - [x] implement old registry migration logic
+- [x] confirm registry & 'empty' domain logic by checking during backfill
 - [ ] implement old registry resolver logic
 - [ ] integrate rainbow tables for label healing
   - load the tabel dump into pglite & query synchronously to match existing behavior
   - https://github.com/graphprotocol/ens-rainbow
-- [ ] see if the logic in Registry:L102 can be removed, as domains are literally never deleted from the subgraph
-- [ ] at block 16508265 subgraph has `2874833` `.eth` subdomains, ponder has `2917705`, 42,872 more. ponder's `subdomainCount` and `subdomains { totalCount }` are only off by 3, indicating that empty domains are not being subbed correctly. there are 23724 empty domains in the db
 
 ## confidence
 
@@ -29,6 +28,8 @@ a strategy to obtain confidence in the ponder implementation, since subgraph is 
 
 ## well-known queries
 
+### from ensjs
+
 - [`getDecodedName`](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/getDecodedName.ts) — Gets the full name for a name with unknown labels from the subgraph
   - basically: attempts to heal any encoded labels in a provided name using the subgraph
   - if name is fully decoded, return
@@ -41,9 +42,26 @@ a strategy to obtain confidence in the ponder implementation, since subgraph is 
   - basically just all the events associated with a name
 - [`getNamesForAddress`](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/getNamesForAddress.ts)
   - gets all names related to an address via address=registrant,address=owner,address=wrappedOwner,address=resolvedAddress
-  - supports filter by (current) expiry, include/exclude reverse records, 'empty' domains
+  - supports `searchString`
+  - supports filter by (current) expiry, by reverse records, by 'empty' domains
   - supports order by expiry date, name, labelName, createdAt
   - [expiryDate order by](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/filters.ts#L707) is an absolutely insane construction
+  - supports pagination by constructing additional where clauses to exclude previous results
+- [`getSubgraphRecords`](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/getSubgraphRecords.ts) — Gets the records for a name from the subgraph
+  - pretty straightforward, allows querying by specific resolver id
+- [`getSubgraphRegistrant`](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/getSubgraphRegistrant.ts) — Gets the name registrant from the subgraph.
+  - only supports eth 2ld
+- [`getSubnames`](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/getSubnames.ts) — Gets the subnames for a name
+  - supports `searchString`
+  - supports filter by (current) expiry, by 'empty' domains
+  - supports order by expiry date, name, labelName, createdAt
+  - supports pagination by constructing additional where clauses to exclude previous results
+
+### from ens-app-v3
+
+- [`useResolverExists`](https://github.com/ensdomains/ens-app-v3/blob/328692ae832618f8143916c143b7e4cb9e520811/src/hooks/useResolverExists.ts#L27) — straightforward resolver existence check
+- [`useRegistrationData`](https://github.com/ensdomains/ens-app-v3/blob/328692ae832618f8143916c143b7e4cb9e520811/src/hooks/useRegistrationData.ts#L31) — registration by id and nameRegistered events
+
 
 ### notes
 

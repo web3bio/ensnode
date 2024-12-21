@@ -65,6 +65,11 @@ async function _handleTransfer({
 		.values([{ id: node, ownerId: owner, createdAt: event.block.timestamp }])
 		.onConflictDoUpdate({ ownerId: owner });
 
+	// garbage collect newly 'empty' domain iff necessary
+	if (owner === zeroAddress) {
+		await recursivelyRemoveEmptyDomainFromParentSubdomainCount(context, node);
+	}
+
 	// TODO: log DomainEvent
 }
 
@@ -111,7 +116,7 @@ const _handleNewOwner =
 		if (!domain.name) {
 			const parent = await context.db.find(domains, { id: node });
 
-			// TODO: how to get reverse mapping of labelhash to labelName?
+			// TODO: implement sync rainbow table lookups
 			// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L111
 			const labelName = encodeLabelhash(label);
 			const name = parent?.name ? `${labelName}.${parent.name}` : labelName;
@@ -122,10 +127,12 @@ const _handleNewOwner =
 		}
 
 		// garbage collect newly 'empty' domain iff necessary
-		await recursivelyRemoveEmptyDomainFromParentSubdomainCount(
-			context,
-			domain.id,
-		);
+		if (owner === zeroAddress) {
+			await recursivelyRemoveEmptyDomainFromParentSubdomainCount(
+				context,
+				domain.id,
+			);
+		}
 	};
 
 async function _handleNewTTL({
@@ -137,13 +144,10 @@ async function _handleNewTTL({
 }) {
 	const { node, ttl } = event.args;
 
-	try {
-		await context.db.update(domains, { id: node }).set({ ttl });
-	} catch {
-		// handle the edge case in which the domain no longer exists, which will throw update error
-		// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L215
-		// NOTE: i'm not sure this needs to be here, as domains are never deleted (??)
-	}
+	// TODO: handle the edge case in which the domain no longer exists?
+	// https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L215
+	// NOTE: i'm not sure this needs to be here, as domains are never deleted (??)
+	await context.db.update(domains, { id: node }).set({ ttl });
 
 	// TODO: log DomainEvent
 }
@@ -165,7 +169,7 @@ async function _handleNewResolver({
 		// garbage collect newly 'empty' domain iff necessary
 		await recursivelyRemoveEmptyDomainFromParentSubdomainCount(context, node);
 	} else {
-		// otherwise upsert the resolver and update the domain to point to it
+		// otherwise upsert the resolver
 		const resolverId = makeResolverId(node, resolverAddress);
 
 		const resolver = await context.db
@@ -177,6 +181,7 @@ async function _handleNewResolver({
 			})
 			.onConflictDoNothing();
 
+		// update the domain to point to it, and denormalize the eth addr
 		await context.db
 			.update(domains, { id: node })
 			.set({ resolverId, resolvedAddress: resolver?.addrId });

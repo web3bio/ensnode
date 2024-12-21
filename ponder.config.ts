@@ -4,6 +4,9 @@ import { http, getAbiItem } from "viem";
 import { Registry } from "./abis/Registry";
 import { Resolver } from "./abis/Resolver";
 
+// just for testing...
+const END_BLOCK = 4100000;
+
 export default createConfig({
 	networks: {
 		mainnet: {
@@ -17,12 +20,14 @@ export default createConfig({
 			abi: Registry,
 			address: "0x314159265dd8dbb310642f98f50c066173c1259b",
 			startBlock: 3327417,
+			endBlock: END_BLOCK,
 		},
 		Registry: {
 			network: "mainnet",
 			abi: Registry,
 			address: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
 			startBlock: 9380380,
+			endBlock: 9380380,
 		},
 		// TODO: do we need an OldResolver config as well to watch for resolves using oldregistry?
 		// probably.
@@ -35,6 +40,7 @@ export default createConfig({
 				parameter: "resolver",
 			}),
 			startBlock: 9380380,
+			endBlock: 9380380,
 		},
 	},
 });
