@@ -2,6 +2,8 @@
 
 > powered by ponder
 
+estimated backfill time @ 50rps = 24-36 hours on M1 Macbook (~10x speedup)
+
 ### goals
 
 - ease of deployment for indiviudals to run their own infra
