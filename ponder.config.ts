@@ -1,6 +1,9 @@
 import { createConfig, factory, mergeAbis } from "ponder";
 import { http, getAbiItem } from "viem";
 
+import { BaseRegistrar } from "./abis/BaseRegistrar";
+import { EthRegistrarController } from "./abis/EthRegistrarController";
+import { EthRegistrarControllerOld } from "./abis/EthRegistrarControllerOld";
 import { LegacyPublicResolver } from "./abis/LegacyPublicResolver";
 import { Registry } from "./abis/Registry";
 import { Resolver } from "./abis/Resolver";
@@ -12,6 +15,12 @@ const RESOLVER_ABI = mergeAbis([LegacyPublicResolver, Resolver]);
 
 const REGISTRY_OLD_ADDRESS = "0x314159265dd8dbb310642f98f50c066173c1259b";
 const REGISTRY_ADDRESS = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+
+const BASE_REGISTRAR_ADDRESS = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
+const ETH_REGISTRAR_CONTROLLER_OLD_ADDRESS =
+	"0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5";
+const ETH_REGISTRAR_CONTROLLER_ADDRESS =
+	"0x253553366Da8546fC250F225fe3d25d0C782303b";
 
 export default createConfig({
 	networks: {
@@ -55,6 +64,27 @@ export default createConfig({
 				parameter: "resolver",
 			}),
 			startBlock: 9380380,
+			endBlock: END_BLOCK,
+		},
+		BaseRegistrar: {
+			network: "mainnet",
+			abi: BaseRegistrar,
+			address: BASE_REGISTRAR_ADDRESS,
+			startBlock: 9380410,
+			endBlock: END_BLOCK,
+		},
+		EthRegistrarControllerOld: {
+			network: "mainnet",
+			abi: EthRegistrarControllerOld,
+			address: ETH_REGISTRAR_CONTROLLER_OLD_ADDRESS,
+			startBlock: 9380471,
+			endBlock: END_BLOCK,
+		},
+		EthRegistrarController: {
+			network: "mainnet",
+			abi: EthRegistrarController,
+			address: ETH_REGISTRAR_CONTROLLER_ADDRESS,
+			startBlock: Math.min(16925618, END_BLOCK),
 			endBlock: END_BLOCK,
 		},
 	},

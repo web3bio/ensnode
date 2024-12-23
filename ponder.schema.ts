@@ -116,3 +116,34 @@ export const resolverRelations = relations(resolvers, ({ one }) => ({
 		references: [domains.id],
 	}),
 }));
+
+export const registrations = onchainTable("registrations", (t) => ({
+	// The unique identifier of the registration
+	id: t.hex().primaryKey(),
+	// The domain name associated with the registration
+	domainId: t.hex("domain_id").notNull(),
+	// The registration date of the domain
+	registrationDate: t.bigint("registration_date").notNull(),
+	// The expiry date of the domain
+	expiryDate: t.bigint("expiry_date").notNull(),
+	// The cost associated with the domain registration
+	cost: t.bigint(),
+	// The account that registered the domain
+	registrantId: t.hex("registrant_id").notNull(),
+	// The human-readable label name associated with the domain registration
+	labelName: t.text(),
+
+	// The events associated with the domain registration
+	// TODO: events
+}));
+
+export const registrationRelations = relations(registrations, ({ one }) => ({
+	domain: one(domains, {
+		fields: [registrations.domainId],
+		references: [domains.id],
+	}),
+	registrant: one(accounts, {
+		fields: [registrations.registrantId],
+		references: [accounts.id],
+	}),
+}));

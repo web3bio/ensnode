@@ -16,6 +16,10 @@ estimated backfill time @ 50rps = 24-36 hours on M1 Macbook (~10x speedup)
 
 ### todo
 
+- [ ] formatting: column length 100, 2 spcaes over tabs
+- [ ] gut check results of resolver index against subgraph up to block 12m
+- [ ] implement ethRegistry
+- [ ] implement nameWrapper
 - [ ] better understand reverse resolution & how that pertains to L2 primary names and impacts the future schema, etc
 - [ ] CI/CD with indexing?
   - more recent endlbock for gut checks
@@ -157,6 +161,10 @@ iff filters against the healed name need to be supported, the cache can be persi
 any resolver that implements the CCIP Read standard will have to have its records implemented at the API layer which can stitch the indexed data with realtime offchain data via CCIP Reads. if we don't want to implement the CCIP Read proxy as part of this unified api, the api should know if a Resolver defers to CCIP and communicate that effectively in the response so that clients can do it themselves.
 
 in the subgraph implementation, resolver handlers must upsert resolvers because people can set records etc for a node that has not (yet) specified this resolver as active, meaning the create in `Registry:NewResolver` has yet to fire. in the ideal scenario, this lookup is keyed only by `(chainId, address)` and we can use pure updates instead of an upsert
+
+### registrar
+
+the subgraph implements all of the BaseRegistrar, EthRegistrarController, and EthRegistrarControllerOld logic together
 
 ### api
 
