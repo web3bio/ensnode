@@ -5,6 +5,7 @@ import { BaseRegistrar } from "./abis/BaseRegistrar";
 import { EthRegistrarController } from "./abis/EthRegistrarController";
 import { EthRegistrarControllerOld } from "./abis/EthRegistrarControllerOld";
 import { LegacyPublicResolver } from "./abis/LegacyPublicResolver";
+import { NameWrapper } from "./abis/NameWrapper";
 import { Registry } from "./abis/Registry";
 import { Resolver } from "./abis/Resolver";
 
@@ -21,6 +22,7 @@ const ETH_REGISTRAR_CONTROLLER_OLD_ADDRESS =
 	"0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5";
 const ETH_REGISTRAR_CONTROLLER_ADDRESS =
 	"0x253553366Da8546fC250F225fe3d25d0C782303b";
+const NAME_WRAPPER_ADDRESS = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
 
 export default createConfig({
 	networks: {
@@ -85,6 +87,13 @@ export default createConfig({
 			abi: EthRegistrarController,
 			address: ETH_REGISTRAR_CONTROLLER_ADDRESS,
 			startBlock: Math.min(16925618, END_BLOCK),
+			endBlock: END_BLOCK,
+		},
+		NameWrapper: {
+			network: "mainnet",
+			abi: NameWrapper,
+			address: NAME_WRAPPER_ADDRESS,
+			startBlock: Math.min(16925608, END_BLOCK),
 			endBlock: END_BLOCK,
 		},
 	},
