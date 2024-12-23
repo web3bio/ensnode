@@ -1,11 +1,17 @@
-import { createConfig, factory } from "ponder";
+import { createConfig, factory, mergeAbis } from "ponder";
 import { http, getAbiItem } from "viem";
 
+import { LegacyPublicResolver } from "./abis/LegacyPublicResolver";
 import { Registry } from "./abis/Registry";
 import { Resolver } from "./abis/Resolver";
 
 // just for testing...
-const END_BLOCK = 4100000;
+const END_BLOCK = 12_000_000;
+
+const RESOLVER_ABI = mergeAbis([LegacyPublicResolver, Resolver]);
+
+const REGISTRY_OLD_ADDRESS = "0x314159265dd8dbb310642f98f50c066173c1259b";
+const REGISTRY_ADDRESS = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
 
 export default createConfig({
 	networks: {
@@ -18,29 +24,38 @@ export default createConfig({
 		RegistryOld: {
 			network: "mainnet",
 			abi: Registry,
-			address: "0x314159265dd8dbb310642f98f50c066173c1259b",
+			address: REGISTRY_OLD_ADDRESS,
 			startBlock: 3327417,
 			endBlock: END_BLOCK,
 		},
 		Registry: {
 			network: "mainnet",
 			abi: Registry,
-			address: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+			address: REGISTRY_ADDRESS,
 			startBlock: 9380380,
-			endBlock: 9380380,
+			endBlock: END_BLOCK,
 		},
-		// TODO: do we need an OldResolver config as well to watch for resolves using oldregistry?
-		// probably.
-		Resolver: {
+		OldRegistryResolvers: {
 			network: "mainnet",
-			abi: Resolver,
+			abi: RESOLVER_ABI,
 			address: factory({
-				address: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+				address: REGISTRY_OLD_ADDRESS,
 				event: getAbiItem({ abi: Registry, name: "NewResolver" }),
 				parameter: "resolver",
 			}),
 			startBlock: 9380380,
-			endBlock: 9380380,
+			endBlock: END_BLOCK,
+		},
+		Resolver: {
+			network: "mainnet",
+			abi: RESOLVER_ABI,
+			address: factory({
+				address: REGISTRY_ADDRESS,
+				event: getAbiItem({ abi: Registry, name: "NewResolver" }),
+				parameter: "resolver",
+			}),
+			startBlock: 9380380,
+			endBlock: END_BLOCK,
 		},
 	},
 });

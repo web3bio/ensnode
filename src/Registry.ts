@@ -7,8 +7,8 @@ import {
 	encodeLabelhash,
 	makeSubnodeNamehash,
 } from "./lib/ens-helpers";
-import { ensureAccount } from "./lib/ensure";
 import { makeResolverId } from "./lib/ids";
+import { upsertAccount } from "./lib/upserts";
 
 // a domain is migrated iff it exists and isMigrated is set to true, otherwise it is not
 async function isDomainMigrated(context: Context, node: Hex) {
@@ -57,7 +57,7 @@ async function _handleTransfer({
 	const { node, owner } = event.args;
 
 	// ensure owner account
-	await ensureAccount(context, owner);
+	await upsertAccount(context, owner);
 
 	// ensure domain & update owner
 	await context.db
@@ -87,7 +87,7 @@ const _handleNewOwner =
 		const subnode = makeSubnodeNamehash(node, label);
 
 		// ensure owner
-		await ensureAccount(context, owner);
+		await upsertAccount(context, owner);
 
 		// note that we set isMigrated so that if this domain is being interacted with on the new registry, its migration status is set here
 		let domain = await context.db.find(domains, { id: subnode });
@@ -193,7 +193,7 @@ async function _handleNewResolver({
 // setup on old registry
 ponder.on("RegistryOld:setup", async ({ context }) => {
 	// ensure we have an account for the zeroAddress
-	await ensureAccount(context, zeroAddress);
+	await upsertAccount(context, zeroAddress);
 
 	// ensure we have a root Domain, owned by the zeroAddress
 	await context.db.insert(domains).values({

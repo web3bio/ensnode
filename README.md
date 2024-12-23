@@ -1,17 +1,22 @@
+# ens-multichain indexer
+
+> powered by ponder
 
 ### goals
 
 - ease of deployment for indiviudals to run their own infra
-- initially, a 1:1 port of the subgraph, to engender confidence in mapping logic
+- faster, more efficient, easier to use and deploy implementation
+- 1:1 representation of results as compared to subgraph
   - subgraph api compatibility (not 100%)
     - matching the ~10 well-defined graphql queries
     - via ensjs, ens-app-v3, and viem (iff it uses subgraph)
+- multichain by default, multichain support (mainnet, base, linea)
 
 ### todo
 
-- [x] implement old registry migration logic
-- [x] confirm registry & 'empty' domain logic by checking during backfill
-- [ ] implement old registry resolver logic
+- [ ] better understand reverse resolution & how that pertains to L2 primary names and impacts the future schema, etc
+- [ ] CI/CD with indexing?
+  - more recent endlbock for gut checks
 - [ ] integrate rainbow tables for label healing
   - load the tabel dump into pglite & query synchronously to match existing behavior
   - https://github.com/graphprotocol/ens-rainbow
@@ -66,9 +71,12 @@ a strategy to obtain confidence in the ponder implementation, since subgraph is 
 ### notes
 
 - unable to automatically identify subname registries via onchain event, CCIP standard dosn't include any info about data source, so we'll need to encode manually for now
-- ENSIP - how to automatically identify subname registrars
 - ENSIP - shared interface for subdomain registrars
 - ENSIP — standard for how a resolver on L1 can (optionally) emit an event specifying contract on an L2 that it proxies records from
+  - optional, in the popular case of L2-managed subnames
+  - removes centralized dependency on the CCIP Gateway
+  - flaky test experience with .cb.id name gateway
+  - also helps indexer discovery
 
 - eth registry is ERC721, has many controllers (), no knowledge of pricing — delegated to registrar controllers
 - eth old registry & new registry migration due to security issue, new then fallback to old, therefore ignore all old evens on domains that have been seen by new registry
@@ -118,6 +126,10 @@ the 'empty' domains should be handled more accurately, depending on how importan
 
 various resources use both null and zeroAddress to indicate emptiness, this is horrible and creates numerous checks like [this](https://github.com/ensdomains/ensjs/blob/main/packages/ensjs/src/functions/subgraph/getNamesForAddress.ts#L255) where they check for `!== NULL && !== zeroAddress`
 
+### ens indexing plugin
+
+l2 ens deployments are very similar — write plugin to make configuring source addresses easy and pass node that domains in these handlers are implicitly parented to (assuming that l2 deployments make nodes against the NAMEHASH_ZERO i.e. every name is basically a 2LD)
+
 ### registry
 
 - in `Registry:NewOwner`, the event emits `node` and `label`, `node` should be named `parent` and the computed subnode should be named `node` or `domain`
@@ -141,6 +153,8 @@ iff filters against the healed name need to be supported, the cache can be persi
   - any domain's records are computed through the current `resolverId` and querying
 
 any resolver that implements the CCIP Read standard will have to have its records implemented at the API layer which can stitch the indexed data with realtime offchain data via CCIP Reads. if we don't want to implement the CCIP Read proxy as part of this unified api, the api should know if a Resolver defers to CCIP and communicate that effectively in the response so that clients can do it themselves.
+
+in the subgraph implementation, resolver handlers must upsert resolvers because people can set records etc for a node that has not (yet) specified this resolver as active, meaning the create in `Registry:NewResolver` has yet to fire. in the ideal scenario, this lookup is keyed only by `(chainId, address)` and we can use pure updates instead of an upsert
 
 ### api
 
