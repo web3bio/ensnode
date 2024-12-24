@@ -10,7 +10,7 @@ import { Registry } from "./abis/Registry";
 import { Resolver } from "./abis/Resolver";
 
 // just for testing...
-const END_BLOCK = 9412000; // 12_000_000;
+const END_BLOCK = 12_000_000;
 
 const RESOLVER_ABI = mergeAbis([LegacyPublicResolver, Resolver]);
 

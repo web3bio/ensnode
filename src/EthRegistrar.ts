@@ -7,7 +7,7 @@ import {
 	makeSubnodeNamehash,
 	tokenIdToLabel,
 } from "./lib/ens-helpers";
-import { upsertAccount } from "./lib/upserts";
+import { upsertAccount, upsertRegistration } from "./lib/upserts";
 
 // all nodes referenced by EthRegistrar are parented to .eth
 const ROOT_NODE = NAMEHASH_ETH;
@@ -27,7 +27,7 @@ async function handleNameRegistered({
 	// TODO: materialze labelName via rainbow tables ala Registry.ts
 	const labelName = undefined;
 
-	await context.db.insert(registrations).values({
+	await upsertRegistration(context, {
 		id: label,
 		domainId: node,
 		registrationDate: event.block.timestamp,
@@ -41,8 +41,6 @@ async function handleNameRegistered({
 		expiryDate: expires + GRACE_PERIOD_SECONDS,
 		labelName,
 	});
-
-	console.log("done");
 
 	// TODO: log Event
 }

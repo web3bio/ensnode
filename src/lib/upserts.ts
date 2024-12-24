@@ -1,5 +1,5 @@
 import type { Context } from "ponder:registry";
-import { accounts, resolvers } from "ponder:schema";
+import { accounts, registrations, resolvers } from "ponder:schema";
 import type { Address } from "viem";
 
 export async function upsertAccount(context: Context, address: Address) {
@@ -15,6 +15,16 @@ export async function upsertResolver(
 ) {
 	return await context.db
 		.insert(resolvers)
+		.values(values)
+		.onConflictDoUpdate(values);
+}
+
+export async function upsertRegistration(
+	context: Context,
+	values: typeof registrations.$inferInsert,
+) {
+	return await context.db
+		.insert(registrations)
 		.values(values)
 		.onConflictDoUpdate(values);
 }
