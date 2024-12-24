@@ -1,10 +1,11 @@
 import { type Context, type Event, ponder } from "ponder:registry";
 import { domains, registrations } from "ponder:schema";
-import { type Hex, toHex } from "viem";
+import type { Hex } from "viem";
 import {
 	NAMEHASH_ETH,
 	isLabelValid,
 	makeSubnodeNamehash,
+	tokenIdToLabel,
 } from "./lib/ens-helpers";
 import { upsertAccount } from "./lib/upserts";
 
@@ -16,11 +17,11 @@ async function handleNameRegistered({
 	context,
 	event,
 }: { context: Context; event: Event<"BaseRegistrar:NameRegistered"> }) {
-	const { id: _id, owner, expires } = event.args;
+	const { id, owner, expires } = event.args;
 
 	await upsertAccount(context, owner);
 
-	const label = toHex(_id);
+	const label = tokenIdToLabel(id);
 	const node = makeSubnodeNamehash(ROOT_NODE, label);
 
 	// TODO: materialze labelName via rainbow tables ala Registry.ts
@@ -40,6 +41,8 @@ async function handleNameRegistered({
 		expiryDate: expires + GRACE_PERIOD_SECONDS,
 		labelName,
 	});
+
+	console.log("done");
 
 	// TODO: log Event
 }
@@ -118,9 +121,9 @@ async function handleNameRenewed({
 	context,
 	event,
 }: { context: Context; event: Event<"BaseRegistrar:NameRenewed"> }) {
-	const { id: _id, expires } = event.args;
+	const { id, expires } = event.args;
 
-	const label = toHex(_id);
+	const label = tokenIdToLabel(id);
 	const node = makeSubnodeNamehash(ROOT_NODE, label);
 
 	await context.db
@@ -142,7 +145,7 @@ async function handleNameTransferred({
 
 	await upsertAccount(context, to);
 
-	const label = toHex(tokenId);
+	const label = tokenIdToLabel(tokenId);
 	const node = makeSubnodeNamehash(ROOT_NODE, label);
 
 	const registration = await context.db.find(registrations, { id: label });

@@ -18,7 +18,7 @@ estimated backfill time @ 50rps = 24-36 hours on M1 Macbook (~10x speedup)
 
 - [ ] formatting: column length 100, 2 spcaes over tabs
 - [ ] gut check results of resolver index against subgraph up to block 12m
-- [ ] implement ethRegistry
+- [x] implement ethRegistry
 - [ ] implement nameWrapper
 - [ ] better understand reverse resolution & how that pertains to L2 primary names and impacts the future schema, etc
 - [ ] CI/CD with indexing?
