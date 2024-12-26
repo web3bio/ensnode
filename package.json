@@ -12,9 +12,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "hono": "^4.5.0",
+    "hono": "^4.6.14",
     "ponder": "^0.8.8",
-    "viem": "^2.21.3"
+    "viem": "^2.21.57"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
