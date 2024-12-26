@@ -8,222 +8,216 @@ import { upsertAccount, upsertResolver } from "./lib/upserts";
 // luckily the subgraph doesn't care about the value parameter so we can use a union
 // to unify the codepath
 type AnyTextChangedEvent =
-	| Event<"Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)">
-	| Event<"Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)">
-	| Event<"OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)">
-	| Event<"OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)">;
+  | Event<"Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)">
+  | Event<"Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)">
+  | Event<"OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)">
+  | Event<"OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)">;
 
 async function _handleAddrChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:AddrChanged"> }) {
-	const { a: address, node } = event.args;
-	await upsertAccount(context, address);
+  const { a: address, node } = event.args;
+  await upsertAccount(context, address);
 
-	const id = makeResolverId(node, event.log.address);
-	await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-		addrId: address,
-	});
+  const id = makeResolverId(node, event.log.address);
+  await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+    addrId: address,
+  });
 
-	// materialize the resolved add to the domain iff this resolver is active
-	const domain = await context.db.find(domains, { id: node });
-	if (domain?.resolverId === id) {
-		await context.db
-			.update(domains, { id: node })
-			.set({ resolvedAddress: address });
-	}
+  // materialize the resolved add to the domain iff this resolver is active
+  const domain = await context.db.find(domains, { id: node });
+  if (domain?.resolverId === id) {
+    await context.db.update(domains, { id: node }).set({ resolvedAddress: address });
+  }
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleAddressChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:AddressChanged"> }) {
-	const { node, coinType, newAddress } = event.args;
-	await upsertAccount(context, newAddress);
+  const { node, coinType, newAddress } = event.args;
+  await upsertAccount(context, newAddress);
 
-	const id = makeResolverId(node, event.log.address);
-	const resolver = await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const id = makeResolverId(node, event.log.address);
+  const resolver = await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// upsert the new coinType
-	await context.db
-		.update(resolvers, { id })
-		.set({ coinTypes: uniq([...resolver.coinTypes, coinType]) });
+  // upsert the new coinType
+  await context.db
+    .update(resolvers, { id })
+    .set({ coinTypes: uniq([...resolver.coinTypes, coinType]) });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleNameChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:NameChanged"> }) {
-	const { node, name } = event.args;
-	if (hasNullByte(name)) return;
+  const { node, name } = event.args;
+  if (hasNullByte(name)) return;
 
-	const id = makeResolverId(node, event.log.address);
-	await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const id = makeResolverId(node, event.log.address);
+  await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleABIChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:ABIChanged"> }) {
-	const { node } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	const resolver = await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const { node } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  const resolver = await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handlePubkeyChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:PubkeyChanged"> }) {
-	const { node } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	const resolver = await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const { node } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  const resolver = await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleTextChanged({
-	context,
-	event,
+  context,
+  event,
 }: {
-	context: Context;
-	event: AnyTextChangedEvent;
+  context: Context;
+  event: AnyTextChangedEvent;
 }) {
-	const { node, key } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	const resolver = await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const { node, key } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  const resolver = await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// upsert new key
-	await context.db
-		.update(resolvers, { id })
-		.set({ texts: uniq([...resolver.texts, key]) });
+  // upsert new key
+  await context.db.update(resolvers, { id }).set({ texts: uniq([...resolver.texts, key]) });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleContenthashChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:ContenthashChanged"> }) {
-	const { node, hash } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-		contentHash: hash,
-	});
+  const { node, hash } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+    contentHash: hash,
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleInterfaceChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:InterfaceChanged"> }) {
-	const { node } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const { node } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleAuthorisationChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:AuthorisationChanged"> }) {
-	const { node } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	await upsertResolver(context, {
-		id,
-		domainId: node,
-		address: event.log.address,
-	});
+  const { node } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  await upsertResolver(context, {
+    id,
+    domainId: node,
+    address: event.log.address,
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleVersionChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:VersionChanged"> }) {
-	// a version change nulls out the resolver
-	const { node } = event.args;
-	const id = makeResolverId(node, event.log.address);
-	const domain = await context.db.find(domains, { id: node });
-	if (!domain) throw new Error("domain expected");
+  // a version change nulls out the resolver
+  const { node } = event.args;
+  const id = makeResolverId(node, event.log.address);
+  const domain = await context.db.find(domains, { id: node });
+  if (!domain) throw new Error("domain expected");
 
-	// materialize the Domain's resolvedAddress field
-	if (domain.resolverId === id) {
-		await context.db
-			.update(domains, { id: node })
-			.set({ resolvedAddress: null });
-	}
+  // materialize the Domain's resolvedAddress field
+  if (domain.resolverId === id) {
+    await context.db.update(domains, { id: node }).set({ resolvedAddress: null });
+  }
 
-	// clear out the resolver's info
-	await context.db.update(resolvers, { id }).set({
-		addrId: null,
-		contentHash: null,
-		coinTypes: [],
-		texts: [],
-	});
+  // clear out the resolver's info
+  await context.db.update(resolvers, { id }).set({
+    addrId: null,
+    contentHash: null,
+    coinTypes: [],
+    texts: [],
+  });
 
-	// TODO: log ResolverEvent
+  // TODO: log ResolverEvent
 }
 
 async function _handleDNSRecordChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:DNSRecordChanged"> }) {
-	// subgraph ignores
+  // subgraph ignores
 }
 
 async function _handleDNSRecordDeleted({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:DNSRecordDeleted"> }) {
-	// subgraph ignores
+  // subgraph ignores
 }
 
 async function _handleDNSZonehashChanged({
-	context,
-	event,
+  context,
+  event,
 }: { context: Context; event: Event<"Resolver:DNSZonehashChanged"> }) {
-	// subgraph ignores
+  // subgraph ignores
 }
 
 // Old registry handlers
@@ -233,19 +227,16 @@ ponder.on("OldRegistryResolvers:NameChanged", _handleNameChanged);
 ponder.on("OldRegistryResolvers:ABIChanged", _handleABIChanged);
 ponder.on("OldRegistryResolvers:PubkeyChanged", _handlePubkeyChanged);
 ponder.on(
-	"OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)",
-	_handleTextChanged,
+  "OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)",
+  _handleTextChanged,
 );
 ponder.on(
-	"OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)",
-	_handleTextChanged,
+  "OldRegistryResolvers:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)",
+  _handleTextChanged,
 );
 ponder.on("OldRegistryResolvers:ContenthashChanged", _handleContenthashChanged);
 ponder.on("OldRegistryResolvers:InterfaceChanged", _handleInterfaceChanged);
-ponder.on(
-	"OldRegistryResolvers:AuthorisationChanged",
-	_handleAuthorisationChanged,
-);
+ponder.on("OldRegistryResolvers:AuthorisationChanged", _handleAuthorisationChanged);
 ponder.on("OldRegistryResolvers:VersionChanged", _handleVersionChanged);
 ponder.on("OldRegistryResolvers:DNSRecordChanged", _handleDNSRecordChanged);
 ponder.on("OldRegistryResolvers:DNSRecordDeleted", _handleDNSRecordDeleted);
@@ -258,12 +249,12 @@ ponder.on("Resolver:NameChanged", _handleNameChanged);
 ponder.on("Resolver:ABIChanged", _handleABIChanged);
 ponder.on("Resolver:PubkeyChanged", _handlePubkeyChanged);
 ponder.on(
-	"Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)",
-	_handleTextChanged,
+  "Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key)",
+  _handleTextChanged,
 );
 ponder.on(
-	"Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)",
-	_handleTextChanged,
+  "Resolver:TextChanged(bytes32 indexed node, string indexed indexedKey, string key, string value)",
+  _handleTextChanged,
 );
 ponder.on("Resolver:ContenthashChanged", _handleContenthashChanged);
 ponder.on("Resolver:InterfaceChanged", _handleInterfaceChanged);
