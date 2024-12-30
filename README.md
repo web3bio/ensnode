@@ -8,27 +8,37 @@ estimated backfill time @ 50rps = 24-36 hours on M1 Macbook (~10x speedup)
 
 > an optimized, multichain ens indexer that the community loves and integrates
 
-this means:
 - ease of deployment for indiviudals to run their own infra
 - faster, more efficient, easier to use and deploy implementation
-- v1 — high confidence in subgraph equivalency
-  - 1:1 representation of results as compared to subgraph
-    - subgraph api compatibility (maybe not 100%)
-      - matching the ~10 well-defined graphql queries
-      - via ensjs, ens-app-v3
-      - should 'just work', following [this documentation](https://github.com/ensdomains/ensjs/blob/main/docs/basics/custom-subgraph-uris.md)
-- v2 — optimized multichain unified index
-  - flattened namespace
-  - support indexing subset of data, i.e. only domains under parent node
-  - support key ens-app-v3 and wallet ENS funtions
+- v1 — **high confidence in subgraph equivalency**
+  - 1:1 equivalency of results as compared to subgraph
+    - matching the ~10 well-defined graphql queries
+    - 100% ensjs, ens-app-v3 test suites passing
+    - should 'just work', following [this documentation](https://github.com/ensdomains/ensjs/blob/main/docs/basics/custom-subgraph-uris.md)
+  - dataset equivalency via subgraph dump diffs
+  - query equivalency via proxy diff tool
+- v2 — **optimized multichain indexer w/ unified namespace**
+  - true multichain indexing (mainnet, base, linea, etc)
+  - flattened, unified, multichain namespace
+  - support key ens-app-v3 and wallet ENS funtions via optimized resolvers & PRs
   - high quality human-readable (healed) list of names by owner necessary for many UX
+  - (possible) continued backwards compatibility with subgraph
+  - support indexing subset of data, i.e. only domains under parent node
 
 ### todo
 
+- [ ] document the graphql queries/fragments the ponder custom indexer needs to implement
+  - [ ] collection queries to support scraper
+  - [ ] well-known queries
+  - [ ] document verification architecture implementation
 - [ ] gut check results of resolver index against subgraph up to block 12m
 - [x] implement ethRegistry
 - [ ] implement nameWrapper
 - [ ] better understand reverse resolution & how that pertains to L2 primary names and impacts the future schema, etc
+- [ ] subgraph graphql implementation within ponder
+  - [ ] implement subgraph-style pagination api
+  - [ ] support the well-known queries below
+  - [ ] support collection queries as well, to power scraping diff tool
 - [ ] CI/CD with indexing?
   - more recent endlbock for gut checks
 - [ ] integrate rainbow tables for label healing
@@ -83,6 +93,14 @@ a strategy to obtain confidence in the ponder implementation, since subgraph is 
 
 
 ### notes
+
+confidence-building options
+
+1. postgres dump diff tool
+  - could host ponder/graph-node dumps for people to verify on their own
+2. rip everything from thge subgraph at block `n` and use as a snapshot, do the same to ponder & diff
+3. proxies diff tool + run well-known apps to capture live queries & diff in realtime
+4. fully passing ensjs & ens-app-v3 test suite against our indexer is a requirement
 
 - unable to automatically identify subname registries via onchain event, CCIP standard dosn't include any info about data source, so we'll need to encode manually for now
 - ENSIP - shared interface for subdomain registrars
