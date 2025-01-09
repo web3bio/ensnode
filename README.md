@@ -2,6 +2,35 @@
 
 > powered by ponder
 
+## Getting started
+
+Run
+```
+pnpm install
+```
+to get the NPM dependencies downloaded.
+
+Then, initialize local environment configuration:
+```
+cp .env.local.example .env.local
+```
+and update:
+
+- `ACTIVE_PLUGIN` — set any plugin name you’d like to active (`eth`, `base.eth`, or `linea.eth`)
+- `RPC_URL_*` — optional, but you can use private ones to speed the syncing process up
+- `DATABASE_SCHEMA` is arbitrary, with the limitations mentioned in the linked documentation
+- `DATABASE_URL` is your local postgres database connection string
+
+Once the `.env.local` is setup, you can run the indexer in either way:
+- `pnpm ponder dev`
+- `pnpm ponder start`
+
+To learn more about those commands, go to https://ponder.sh/docs/api-reference/ponder-cli#dev
+
+## Overview
+
+### `eth` plugin
+
 estimated backfill time @ 50rps = 24-36 hours on M1 Macbook (~10x speedup)
 
 ### goals
