@@ -19,16 +19,16 @@ export const tokenIdToLabel = (tokenId: bigint) => toHex(tokenId, { size: 32 });
  * one or more of these characters are unusable by any app implementing
  * ENSIP-15 (e.g., via https://github.com/adraffy/ens-normalize.js
  * or https://github.com/namehash/ens-normalize-python).
- * 
+ *
  * While many other characters (beyond these 4) are not supported by
  * ENSIP-15, only the following 4 characters are classified as "unindexable" due
  * to specific indexing concerns.
- * 
+ *
  * Onchain ENS contracts do not enforce ENSIP-15 normalization for reasons
  * including the gas costs of enforcement. This allows unnormalized labels
  * containing these characters to exist onchain. Such labels must be handled
  * carefully by indexers to avoid conflicts.
- * 
+ *
  * Some indexed labels are "unknown" (or "unindexable") but still require a
  * representation within indexed data. For this purpose, a special "unknown
  * label" format is defined that represents these labels in the format of
@@ -45,19 +45,19 @@ export const tokenIdToLabel = (tokenId: bigint) => toHex(tokenId, { size: 32 });
  * square brackets.
  */
 const UNINDEXABLE_LABEL_CHARACTERS = [
-  '\0', // null byte: PostgreSQL does not allow storing this character in text fields.
-  '.',  // conflicts with ENS label separator logic.
-  '[',  // conflicts with "unknown label" representations.
-  ']'   // conflicts with "unknown label" representations.
+  "\0", // null byte: PostgreSQL does not allow storing this character in text fields.
+  ".", // conflicts with ENS label separator logic.
+  "[", // conflicts with "unknown label" representations.
+  "]", // conflicts with "unknown label" representations.
 ];
 
 const UNINDEXABLE_LABEL_CHARACTER_CODES = new Set(
-  UNINDEXABLE_LABEL_CHARACTERS.map((char) => char.charCodeAt(0))
+  UNINDEXABLE_LABEL_CHARACTERS.map((char) => char.charCodeAt(0)),
 );
 
 /**
  * Check if any characters in `label` are "unindexable".
- * 
+ *
  * Related logic in ENS Subgraph:
  * https://github.com/ensdomains/ens-subgraph/blob/master/src/utils.ts#L68
  */
