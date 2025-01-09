@@ -16,6 +16,7 @@ async function materializeDomainExpiryDate(context: Context, node: Hex) {
   // which is the exact INVERSE of the ensjs util of the same name. the subgraph's name is _incorrect_
   // because it returns true if the PCC is SET _not_ burned
   // make sure to remember that if you compare the logic in this function to the original subgraph logic [here](https://github.com/ensdomains/ens-subgraph/blob/master/src/nameWrapper.ts#L87)
+  // related GitHub issue: https://github.com/ensdomains/ens-subgraph/issues/88
 
   // do not update expiry if PCC is burned
   if (checkPccBurned(BigInt(wrappedDomain.fuses))) return;

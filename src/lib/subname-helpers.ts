@@ -14,18 +14,53 @@ export const makeSubnodeNamehash = (node: Hex, label: Hex) => keccak256(concat([
 export const tokenIdToLabel = (tokenId: bigint) => toHex(tokenId, { size: 32 });
 
 /**
-  TODO: this should be standardized via helper lib
-  https://github.com/ensdomains/ens-subgraph/blob/master/src/utils.ts#L68
-
-  This code is prohibiting indexed labels from including a null byte, a full stop (.), or square bracket characters ([]). Each of these characters are prohibited in normalized ENS names according to the ENSIP-15 standard https://docs.ens.domains/ensip/15 Therefore, any name containing a label with one or more of these characters is unusable by any app that has properly implemented ENS (which includes compliance with ENSIP-15, such as through the use of https://github.com/adraffy/ens-normalize.js or https://github.com/namehash/ens-normalize-python There are many other characters (beyond these 4) that are not supported by ENSIP-15 and that we are not building special checks for in this indexer. However, each of these 4 characters are considered to be "unindexable" due to specific indexing concerns:
-
-  - null byte: postgres struggles with these strings (ideally we could write this more formally)
-  - full stop: these can confuse ENS name processing code that assumes each full stop character is a label separator.
-  - square brackets: some indexed labels are "unknown" (or "unindexable") but still require some representation within indexed data. For this purpose, a special "unknown label" format is defined that represents these labels in the format of "[{labelhash}]" where {labelhash} is the labelhash of the unknown label. When an indexed label is in this format it is necessary to distinguish an "unknown" label containing a labelhash, from an unnormalized label literal that is formatted to appear like an "unknown" label. For example, if the unnormalized label literal "[24695ee963d29f0f52edfdea1e830d2fcfc9052d5ba70b194bddd0afbbc89765]" is indexed, it will be considered "unindexable" (due to the square bracket characters) and therefore be represented as the following "unknown" label instead "[80968d00b78a91f47b233eaa213576293d16dadcbbdceb257bca94b08451ba7f]" which encodes the labelhash of the unnormalized label literal in square brackets.
-
-  Names with these unnormalized / "unindexable" labels exist onchain because existing ENS contracts do not implement the ENSIP-15 standard. This standard is meaningfully complex and costly to implement onchain (high gas costs). Existing ENS contracts apply only very basic validation rules (ex: enforcing minimum character length, etc). Therefore, direct calls to these contracts skip any ENSIP-15 normalization check, resulting in names with these labels existing onchain.
+ * These characters are prohibited in normalized ENS names per the ENSIP-15
+ * standard (https://docs.ens.domains/ensip/15). Names containing labels with
+ * one or more of these characters are unusable by any app implementing
+ * ENSIP-15 (e.g., via https://github.com/adraffy/ens-normalize.js
+ * or https://github.com/namehash/ens-normalize-python).
+ *
+ * While many other characters (beyond these 4) are not supported by
+ * ENSIP-15, only the following 4 characters are classified as "unindexable" due
+ * to specific indexing concerns.
+ *
+ * Onchain ENS contracts do not enforce ENSIP-15 normalization for reasons
+ * including the gas costs of enforcement. This allows unnormalized labels
+ * containing these characters to exist onchain. Such labels must be handled
+ * carefully by indexers to avoid conflicts.
+ *
+ * Some indexed labels are "unknown" (or "unindexable") but still require a
+ * representation within indexed data. For this purpose, a special "unknown
+ * label" format is defined that represents these labels in the format of
+ * "[{labelhash}]" where {labelhash} is the labelhash of the unknown label.
+ * When an indexed label is in this format it is necessary to distinguish an
+ * "unknown" label containing a labelhash, from an unnormalized label literal
+ * that is formatted to appear like an "unknown" label. For example, if the
+ * unnormalized label literal
+ * "[24695ee963d29f0f52edfdea1e830d2fcfc9052d5ba70b194bddd0afbbc89765]"
+ * is indexed, it will be considered "unindexable" (due to the square bracket
+ * characters) and therefore be represented as the following "unknown" label instead
+ * "[80968d00b78a91f47b233eaa213576293d16dadcbbdceb257bca94b08451ba7f]"
+ * which encodes the labelhash of the unnormalized label literal in
+ * square brackets.
  */
-const UNINDEXABLE_LABEL_CHARACTER_CODES = new Set([0, 46, 91, 93]);
+const UNINDEXABLE_LABEL_CHARACTERS = [
+  "\0", // null byte: PostgreSQL does not allow storing this character in text fields.
+  ".", // conflicts with ENS label separator logic.
+  "[", // conflicts with "unknown label" representations.
+  "]", // conflicts with "unknown label" representations.
+];
+
+const UNINDEXABLE_LABEL_CHARACTER_CODES = new Set(
+  UNINDEXABLE_LABEL_CHARACTERS.map((char) => char.charCodeAt(0)),
+);
+
+/**
+ * Check if any characters in `label` are "unindexable".
+ *
+ * Related logic in ENS Subgraph:
+ * https://github.com/ensdomains/ens-subgraph/blob/master/src/utils.ts#L68
+ */
 export const isLabelIndexable = (label: string) => {
   if (!label) return false;
 
