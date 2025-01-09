@@ -48,7 +48,7 @@ export function createPluginNamespace<Subname extends string>(subname: Subname) 
 }
 
 type TransformNameIntoPath<Name extends string> = Name extends `${infer Sub}.${infer Rest}`
-  ? `/${TransformNameIntoPath<Rest>}/${Sub}`
+  ? `${TransformNameIntoPath<Rest>}/${Sub}`
   : `/${Name}`;
 
 /**

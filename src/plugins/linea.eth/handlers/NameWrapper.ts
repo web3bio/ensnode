@@ -3,12 +3,12 @@ import { makeNameWrapperHandlers } from "../../../handlers/NameWrapper";
 import { ownedName, pluginNamespace } from "../ponder.config";
 
 const {
-  handleExpiryExtended,
-  handleFusesSet,
-  handleNameUnwrapped,
   handleNameWrapped,
-  handleTransferBatch,
+  handleNameUnwrapped,
+  handleFusesSet,
+  handleExpiryExtended,
   handleTransferSingle,
+  handleTransferBatch,
 } = makeNameWrapperHandlers(ownedName);
 
 export default function () {

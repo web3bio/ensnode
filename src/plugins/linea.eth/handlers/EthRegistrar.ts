@@ -18,17 +18,31 @@ export default function () {
     return await handleNameTransferred({ context, args: event.args });
   });
 
+  // Linea allows the owner of the EthRegistrarController to register subnames for free
   ponder.on(
-    pluginNamespace("EthRegistrarControllerOld:NameRegistered"),
+    pluginNamespace("EthRegistrarController:OwnerNameRegistered"),
     async ({ context, event }) => {
-      // the old registrar controller just had `cost` param
-      return await handleNameRegisteredByController({ context, args: event.args });
+      return handleNameRegisteredByController({
+        context,
+        args: {
+          ...event.args,
+          cost: 0n,
+        },
+      });
     },
   );
+
+  // Linea allows any wallet address holding a Proof of Humanity (Poh) to register one subname for free
   ponder.on(
-    pluginNamespace("EthRegistrarControllerOld:NameRenewed"),
+    pluginNamespace("EthRegistrarController:PohNameRegistered"),
     async ({ context, event }) => {
-      return await handleNameRenewedByController({ context, args: event.args });
+      return handleNameRegisteredByController({
+        context,
+        args: {
+          ...event.args,
+          cost: 0n,
+        },
+      });
     },
   );
 
