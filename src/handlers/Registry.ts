@@ -1,9 +1,10 @@
 import { Context } from "ponder:registry";
 import { domains, resolvers } from "ponder:schema";
+import { encodeLabelhash } from "@ensdomains/ensjs/utils";
 import { Block } from "ponder";
 import { type Hex, zeroAddress } from "viem";
 import { makeResolverId } from "../lib/ids";
-import { ROOT_NODE, encodeLabelhash, makeSubnodeNamehash } from "../lib/subname-helpers";
+import { ROOT_NODE, makeSubnodeNamehash } from "../lib/subname-helpers";
 import { upsertAccount } from "../lib/upserts";
 
 /**
@@ -96,7 +97,7 @@ export const handleNewOwner =
     // note that we set isMigrated so that if this domain is being interacted with on the new registry, its migration status is set here
     let domain = await context.db.find(domains, { id: subnode });
     if (domain) {
-      // if the domain already exists, this is just an update of the owner record.
+      // if the domain already exists, this is just an update of the owner record (& isMigrated)
       await context.db.update(domains, { id: domain.id }).set({ ownerId: owner, isMigrated });
     } else {
       // otherwise create the domain
