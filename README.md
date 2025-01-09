@@ -23,12 +23,6 @@ estimated backfill time @ 50rps = 24-36 hours on M1 Macbook (~10x speedup)
   - (possible) continued backwards compatibility with subgraph
   - support indexing subset of data, i.e. only domains under parent node
 
-### known bugs
-
-- [ ] there's an account `0x` in the database, which is definitely a bug
-  - add a check at callsite to throw the event that causes this
-- [ ] root domain is not `is_migrated`, definitely should be after new registry is created
-
 #### next up
 
 - [ ] confirm all the schema relations are configured correctly
