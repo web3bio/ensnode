@@ -2,15 +2,33 @@
 
 > powered by ponder
 
-## Getting started
+## Quick start
 
-Run
+### Prerequisites
+
+- [Git](https://git-scm.com/)
+- [Node.js](https://nodejs.org/)
+  - It's recommended you install Node.js through [nvm](https://github.com/nvm-sh/nvm) (see link for installation instructions).
+  - To ensure you're running the expected version of Node.js run `nvm install` in the root of the repository (after you clone it).
+  - Node.js will automatically install `corepack`. You should also ensure Corepack is enabled by running `corepack enable`.
+- [pnpm](https://pnpm.io/)
+  - Run `npm install -g pnpm` or see [other installation options](https://pnpm.io/installation).
+  - To ensure you're running the expected version of pnpm run `corepack use pnpm` in the root of the repository (after you clone it).
+
+### Running indexer
+
+Clone this repository:
+```
+git clone git@github.com:namehash/ens-multichain-indexer.git
+cd ens-multichain-indexer
+```
+
+Have NPM dependencies downloaded:
 ```
 pnpm install
 ```
-to get the NPM dependencies downloaded.
 
-Then, initialize local environment configuration:
+Initialize local environment configuration:
 ```
 cp .env.local.example .env.local
 ```
@@ -22,8 +40,8 @@ and update:
 - `DATABASE_URL` is your local postgres database connection string
 
 Once the `.env.local` is setup, you can run the indexer in either way:
-- `pnpm ponder dev`
-- `pnpm ponder start`
+- `pnpm ponder dev` for development mode,
+- `pnpm ponder start` for production mode.
 
 To learn more about those commands, go to https://ponder.sh/docs/api-reference/ponder-cli#dev
 
