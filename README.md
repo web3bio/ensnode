@@ -15,7 +15,7 @@
   - Run `npm install -g pnpm` or see [other installation options](https://pnpm.io/installation).
   - To ensure you're running the expected version of pnpm run `corepack use pnpm` in the root of the repository (after you clone it).
 
-### Running indexer
+### Run the indexer
 
 Clone this repository:
 ```
@@ -23,23 +23,23 @@ git clone git@github.com:namehash/ens-multichain-indexer.git
 cd ens-multichain-indexer
 ```
 
-Have NPM dependencies downloaded:
+Install dependencies:
 ```
 pnpm install
 ```
 
-Initialize local environment configuration:
+Configure for your local environment:
 ```
 cp .env.local.example .env.local
 ```
-and update:
+then review the docs inside your .env.local file for configuration instructions.
 
-- `ACTIVE_PLUGIN` — set any plugin name you’d like to active (`eth`, `base.eth`, or `linea.eth`)
+- `ACTIVE_PLUGIN` — set the plugin name you’d like to activate (`eth`, `base.eth`, or `linea.eth`). The activated plugin determines which contracts and chains are indexed. Currently only a single plugin can be activated at a time. Soon we will remove this constraint to allow multiple plugins to be activated concurrently.
 - `RPC_URL_*` — optional, but you can use private ones to speed the syncing process up
 - `DATABASE_SCHEMA` is arbitrary, with the limitations mentioned in the linked documentation
-- `DATABASE_URL` is your local postgres database connection string
+- `DATABASE_URL` is your postgres database connection string
 
-Once the `.env.local` is setup, you can run the indexer in either way:
+Once your `.env.local` is configured, launch the indexer by running:
 - `pnpm ponder dev` for development mode,
 - `pnpm ponder start` for production mode.
 
