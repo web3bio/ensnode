@@ -2,8 +2,8 @@ import { type Context } from "ponder:registry";
 import schema from "ponder:schema";
 import { Block } from "ponder";
 import { type Hex, namehash } from "viem";
+import { upsertAccount, upsertRegistration } from "../lib/db-helpers";
 import { isLabelIndexable, makeSubnodeNamehash, tokenIdToLabel } from "../lib/subname-helpers";
-import { upsertAccount, upsertRegistration } from "../lib/upserts";
 
 const GRACE_PERIOD_SECONDS = 7776000n; // 90 days in seconds
 
@@ -23,7 +23,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
     if (domain.labelName !== name) {
       await context.db
         .update(schema.domain, { id: node })
-        .set({ labelName: name, name: `${name}${ownedName}` });
+        .set({ labelName: name, name: `${name}.${ownedName}` });
     }
 
     await context.db.update(schema.registration, { id: label }).set({ labelName: name, cost });
@@ -79,7 +79,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       context: Context;
       args: { name: string; label: Hex; cost: bigint };
     }) {
-      return await setNamePreimage(context, name, label, cost);
+      await setNamePreimage(context, name, label, cost);
     },
 
     async handleNameRenewedByController({
@@ -89,7 +89,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       context: Context;
       args: { name: string; label: Hex; cost: bigint };
     }) {
-      return await setNamePreimage(context, name, label, cost);
+      await setNamePreimage(context, name, label, cost);
     },
 
     async handleNameRenewed({
@@ -117,7 +117,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
 
     async handleNameTransferred({
       context,
-      args: { tokenId, from, to },
+      args: { tokenId, to },
     }: {
       context: Context;
       args: {
