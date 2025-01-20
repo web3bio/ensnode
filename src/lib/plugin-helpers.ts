@@ -115,10 +115,20 @@ export function getActivePlugins<T extends { ownedName: string }>(
   }
 
   const uniquePluginsToActivate = availablePlugins.reduce((acc, plugin) => {
-    // Only add the plugin if it's not already in the map
-    if (acc.has(plugin.ownedName) === false) {
-      acc.set(plugin.ownedName, plugin);
+    // Check if the plugin was requested
+    if (requestedPlugins.includes(plugin.ownedName) === false) {
+      // avoid unnecessary processing
+      return acc;
     }
+
+    // Check if the plugin was already added to the list
+    if (acc.has(plugin.ownedName)) {
+      // avoid duplicates
+      return acc;
+    }
+
+    acc.set(plugin.ownedName, plugin);
+
     return acc;
   }, new Map<string, T>());
 
