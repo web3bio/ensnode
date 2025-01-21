@@ -8,9 +8,11 @@
     "start": "ponder start",
     "db": "ponder db",
     "codegen": "ponder codegen",
+    "test": "vitest",
     "lint": "biome check --write .",
     "typecheck": "tsc"
   },
+  "packageManager": "pnpm@9.12.0",
   "dependencies": {
     "@ensdomains/ensjs": "^4.0.2",
     "@escape.tech/graphql-armor-max-aliases": "^2.6.0",
@@ -30,7 +32,8 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^20.9.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^3.0.3"
   },
   "engines": {
     "node": ">=18.14"
