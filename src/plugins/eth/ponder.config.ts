@@ -28,10 +28,12 @@ const REGISTRY_ADDRESS = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
 
 export const config = createConfig({
   networks: {
-    mainnet: {
-      chainId: mainnet.id,
-      transport: http(rpcEndpointUrl(mainnet.id)),
-      maxRequestsPerSecond: rpcMaxRequestsPerSecond(mainnet.id),
+    get mainnet() {
+      return {
+        chainId: mainnet.id,
+        transport: http(rpcEndpointUrl(mainnet.id)),
+        maxRequestsPerSecond: rpcMaxRequestsPerSecond(mainnet.id),
+      };
     },
   },
   contracts: {

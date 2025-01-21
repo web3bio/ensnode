@@ -21,10 +21,12 @@ const END_BLOCK: ContractConfig["endBlock"] = undefined;
 
 export const config = createConfig({
   networks: {
-    base: {
-      chainId: base.id,
-      transport: http(rpcEndpointUrl(base.id)),
-      maxRequestsPerSecond: rpcMaxRequestsPerSecond(base.id),
+    get base() {
+      return {
+        chainId: base.id,
+        transport: http(rpcEndpointUrl(base.id)),
+        maxRequestsPerSecond: rpcMaxRequestsPerSecond(base.id),
+      };
     },
   },
   contracts: {
