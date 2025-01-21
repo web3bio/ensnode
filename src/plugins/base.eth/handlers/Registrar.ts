@@ -17,26 +17,10 @@ const {
 
 export default function () {
   // support NameRegisteredWithRecord for BaseRegistrar as it used by Base's RegistrarControllers
-  ponder.on(pluginNamespace("BaseRegistrar:NameRegisteredWithRecord"), async ({ context, event }) =>
-    handleNameRegistered({ context, event }),
-  );
+  ponder.on(pluginNamespace("BaseRegistrar:NameRegisteredWithRecord"), handleNameRegistered);
 
-  ponder.on(pluginNamespace("BaseRegistrar:NameRegistered"), async ({ context, event }) => {
-    await upsertAccount(context, event.args.owner);
-    // Base has 'preminted' names via Registrar#registerOnly, which explicitly
-    // does not update the Registry. This breaks a subgraph assumption, as it
-    // expects a domain to exist (via Registry:NewOwner) before any
-    // Registrar:NameRegistered events. We insert the domain entity here,
-    // allowing the base indexer to progress.
-    await context.db.insert(schema.domain).values({
-      id: makeSubnodeNamehash(ownedSubnameNode, tokenIdToLabel(event.args.id)),
-      ownerId: event.args.owner,
-      createdAt: event.block.timestamp,
-    });
+  ponder.on(pluginNamespace("BaseRegistrar:NameRegistered"), handleNameRegistered);
 
-    // after ensuring the domain exists, continue with the standard handler
-    return handleNameRegistered({ context, event });
-  });
   ponder.on(pluginNamespace("BaseRegistrar:NameRenewed"), handleNameRenewed);
 
   ponder.on(pluginNamespace("BaseRegistrar:Transfer"), async ({ context, event }) => {
@@ -44,6 +28,9 @@ export default function () {
     const { id: tokenId, from, to } = event.args;
 
     if (event.args.from === zeroAddress) {
+      // Each domain must reference an account of its owner,
+      // so we ensure the account exists before inserting the domain
+      await upsertAccount(context, to);
       // The ens-subgraph `handleNameTransferred` handler implementation
       // assumes an indexed record for the domain already exists. However,
       // when an NFT token is minted (transferred from `0x0` address),

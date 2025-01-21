@@ -30,7 +30,8 @@ import { ROOT_NODE, makeSubnodeNamehash } from "../lib/subname-helpers";
  * execution will be: `linea`, `ethereum`, `base`.
  */
 export async function setupRootNode({ context }: { context: Context }) {
-  // ensure we have an account for the zeroAddress
+  // Each domain must reference an account of its owner,
+  // so we ensure the account exists before inserting the domain
   await upsertAccount(context, zeroAddress);
 
   // initialize the ENS root to be owned by the zeroAddress and not migrated
@@ -86,7 +87,8 @@ export async function handleTransfer({
 }) {
   const { node, owner } = event.args;
 
-  // ensure owner account
+  // Each domain must reference an account of its owner,
+  // so we ensure the account exists before inserting the domain
   await upsertAccount(context, owner);
 
   // ensure domain & update owner
@@ -119,7 +121,8 @@ export const handleNewOwner =
 
     const subnode = makeSubnodeNamehash(node, label);
 
-    // ensure owner
+    // Each domain must reference an account of its owner,
+    // so we ensure the account exists before inserting the domain
     await upsertAccount(context, owner);
 
     // note that we set isMigrated so that if this domain is being interacted with on the new registry, its migration status is set here
