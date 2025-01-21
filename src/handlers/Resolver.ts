@@ -2,9 +2,9 @@ import { type Context } from "ponder:registry";
 import schema from "ponder:schema";
 import { Log } from "ponder";
 import { Hex } from "viem";
-import { upsertAccount, upsertResolver } from "../lib/db-helpers";
+import { upsertAccount, upsertResolver, upsertDomainText, upsertDomainTextIgnore, upsertDomainResolvedRecords } from "../lib/db-helpers";
 import { hasNullByte, uniq } from "../lib/helpers";
-import { makeResolverId } from "../lib/ids";
+import { makeResolverId, makedomainTextId, makedomainResolvedRecordsId } from "../lib/ids";
 
 // NOTE: both subgraph and this indexer use upserts in this file because a 'Resolver' is _any_
 // contract on the chain that emits an event with this signature, which may or may not actually be
@@ -49,6 +49,7 @@ export async function handleAddressChanged({
   context: Context;
   event: {
     args: { node: Hex; coinType: bigint; newAddress: Hex };
+    block: { timestamp: bigint };
     log: Log;
   };
 }) {
@@ -66,6 +67,19 @@ export async function handleAddressChanged({
   await context.db
     .update(schema.resolver, { id })
     .set({ coinTypes: uniq([...(resolver.coinTypes ?? []), coinType]) });
+
+  const resolved_id = makedomainResolvedRecordsId(node, coinType);
+  const resolvedRecord = await upsertDomainResolvedRecords(context, {
+    id: resolved_id,
+    domainId: node,
+    coinType: coinType,
+    createdAt: event.block.timestamp,
+  });
+
+  // upsert new key-value
+  await context.db
+    .update(schema.domainResolvedRecords, { id: resolved_id })
+    .set({ resolvedAddress: newAddress, updatedAt: event.block.timestamp});
 
   // TODO: log ResolverEvent
 }
@@ -142,10 +156,11 @@ export async function handleTextChanged({
   context: Context;
   event: {
     args: { node: Hex; indexedKey: string; key: string; value?: string };
+    block: { timestamp: bigint };
     log: Log;
   };
 }) {
-  const { node, key } = event.args;
+  const { node, indexedKey, key, value } = event.args;
   const id = makeResolverId(event.log.address, node);
   const resolver = await upsertResolver(context, {
     id,
@@ -157,6 +172,20 @@ export async function handleTextChanged({
   await context.db
     .update(schema.resolver, { id })
     .set({ texts: uniq([...(resolver.texts ?? []), key]) });
+
+  // upsert domain_texts
+  const domain_texts_id = makedomainTextId(node, indexedKey);
+  const domainText = await upsertDomainTextIgnore(context, {
+    id: domain_texts_id,
+    domainId: node,
+    indexedKey: indexedKey,
+    createdAt: event.block.timestamp,
+  });
+
+  // upsert new key-value
+  await context.db
+    .update(schema.domainText, { id: domain_texts_id })
+    .set({ textKey: key, textValue: value, updatedAt: event.block.timestamp});
 
   // TODO: log ResolverEvent
 }

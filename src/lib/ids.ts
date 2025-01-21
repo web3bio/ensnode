@@ -11,3 +11,10 @@ export const makeEventId = (event: Event, transferIndex?: number) =>
   [event.block.number.toString(), event.log.logIndex.toString(), transferIndex?.toString()]
     .filter(Boolean)
     .join("-");
+
+
+export const makedomainTextId = (node: Hex, indexedKey: string) =>
+  [node, indexedKey].join("-");
+
+export const makedomainResolvedRecordsId = (node: Hex, coinType: bigint) =>
+  [node, coinType.toString()].join("-");

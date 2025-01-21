@@ -19,3 +19,24 @@ export async function upsertRegistration(
 ) {
   return context.db.insert(schema.registration).values(values).onConflictDoUpdate(values);
 }
+
+export async function upsertDomainText(
+  context: Context,
+  values: typeof schema.domainText.$inferInsert,
+) {
+  return context.db.insert(schema.domainText).values(values).onConflictDoUpdate(values);
+}
+
+export async function upsertDomainTextIgnore(
+  context: Context,
+  values: typeof schema.domainText.$inferInsert,
+) {
+  return context.db.insert(schema.domainText).values(values).onConflictDoNothing();
+}
+
+export async function upsertDomainResolvedRecords(
+  context: Context,
+  values: typeof schema.domainResolvedRecords.$inferInsert,
+) {
+  return context.db.insert(schema.domainResolvedRecords).values(values).onConflictDoUpdate(values);
+}

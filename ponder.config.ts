@@ -6,7 +6,8 @@ import * as lineaEthPlugin from "./src/plugins/linea.eth/ponder.config";
 
 // list of all available plugins
 // any available plugin can be activated at runtime
-const availablePlugins = [baseEthPlugin, ethPlugin, lineaEthPlugin] as const;
+// const availablePlugins = [baseEthPlugin, ethPlugin, lineaEthPlugin] as const;
+const availablePlugins = [lineaEthPlugin] as const;
 
 // merge of all available plugin configs to support correct typechecking
 // of the indexing handlers
