@@ -1,9 +1,9 @@
 import { type Context } from "ponder:registry";
-import { domains, registrations } from "ponder:schema";
+import schema from "ponder:schema";
 import { Block } from "ponder";
 import { type Hex, namehash } from "viem";
+import { upsertAccount, upsertRegistration } from "../lib/db-helpers";
 import { isLabelIndexable, makeSubnodeNamehash, tokenIdToLabel } from "../lib/subname-helpers";
-import { upsertAccount, upsertRegistration } from "../lib/upserts";
 
 const GRACE_PERIOD_SECONDS = 7776000n; // 90 days in seconds
 
@@ -17,16 +17,18 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
     if (!isLabelIndexable(name)) return;
 
     const node = makeSubnodeNamehash(ownedSubnameNode, label);
-    const domain = await context.db.find(domains, { id: node });
-    if (!domain) throw new Error("domain expected");
+    const domain = await context.db.find(schema.domain, { id: node });
+
+    // encode the runtime assertion here https://github.com/ensdomains/ens-subgraph/blob/master/src/ethRegistrar.ts#L101
+    if (!domain) throw new Error("domain expected in setNamePreimage but not found");
 
     if (domain.labelName !== name) {
       await context.db
-        .update(domains, { id: node })
-        .set({ labelName: name, name: `${name}${ownedName}` });
+        .update(schema.domain, { id: node })
+        .set({ labelName: name, name: `${name}.${ownedName}` });
     }
 
-    await context.db.update(registrations, { id: label }).set({ labelName: name, cost });
+    await context.db.update(schema.registration, { id: label }).set({ labelName: name, cost });
   }
 
   return {
@@ -63,7 +65,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
         labelName,
       });
 
-      await context.db.update(domains, { id: node }).set({
+      await context.db.update(schema.domain, { id: node }).set({
         registrantId: owner,
         expiryDate: expires + GRACE_PERIOD_SECONDS,
         labelName,
@@ -79,7 +81,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       context: Context;
       args: { name: string; label: Hex; cost: bigint };
     }) {
-      return await setNamePreimage(context, name, label, cost);
+      await setNamePreimage(context, name, label, cost);
     },
 
     async handleNameRenewedByController({
@@ -89,7 +91,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       context: Context;
       args: { name: string; label: Hex; cost: bigint };
     }) {
-      return await setNamePreimage(context, name, label, cost);
+      await setNamePreimage(context, name, label, cost);
     },
 
     async handleNameRenewed({
@@ -106,10 +108,10 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       const label = tokenIdToLabel(id);
       const node = makeSubnodeNamehash(ownedSubnameNode, label);
 
-      await context.db.update(registrations, { id: label }).set({ expiryDate: expires });
+      await context.db.update(schema.registration, { id: label }).set({ expiryDate: expires });
 
       await context.db
-        .update(domains, { id: node })
+        .update(schema.domain, { id: node })
         .set({ expiryDate: expires + GRACE_PERIOD_SECONDS });
 
       // TODO: log Event
@@ -117,7 +119,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
 
     async handleNameTransferred({
       context,
-      args: { tokenId, from, to },
+      args: { tokenId, to },
     }: {
       context: Context;
       args: {
@@ -131,12 +133,12 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       const label = tokenIdToLabel(tokenId);
       const node = makeSubnodeNamehash(ownedSubnameNode, label);
 
-      const registration = await context.db.find(registrations, { id: label });
+      const registration = await context.db.find(schema.registration, { id: label });
       if (!registration) return;
 
-      await context.db.update(registrations, { id: label }).set({ registrantId: to });
+      await context.db.update(schema.registration, { id: label }).set({ registrantId: to });
 
-      await context.db.update(domains, { id: node }).set({ registrantId: to });
+      await context.db.update(schema.domain, { id: node }).set({ registrantId: to });
 
       // TODO: log Event
     },

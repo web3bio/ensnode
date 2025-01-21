@@ -1,5 +1,5 @@
 import { type Context, ponder } from "ponder:registry";
-import { domains } from "ponder:schema";
+import schema from "ponder:schema";
 import { type Hex } from "viem";
 import {
   handleNewOwner,
@@ -8,12 +8,12 @@ import {
   handleTransfer,
   setupRootNode,
 } from "../../../handlers/Registry";
-import { makeSubnodeNamehash } from "../../../lib/subname-helpers";
+import { ROOT_NODE, makeSubnodeNamehash } from "../../../lib/subname-helpers";
 import { pluginNamespace } from "../ponder.config";
 
 // a domain is migrated iff it exists and isMigrated is set to true, otherwise it is not
 async function isDomainMigrated(context: Context, node: Hex) {
-  const domain = await context.db.find(domains, { id: node });
+  const domain = await context.db.find(schema.domain, { id: node });
   return domain?.isMigrated ?? false;
 }
 
@@ -30,15 +30,13 @@ export default function () {
   });
 
   ponder.on(pluginNamespace("RegistryOld:NewResolver"), async ({ context, event }) => {
-    // NOTE: the subgraph makes an exception for the root node here
-    // but i don't know that that's necessary, as in ponder our root node starts out
-    // unmigrated and once the NewOwner event is emitted by the new registry,
-    // the root will be considered migrated
-    // https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L246
-
-    // otherwise, only handle iff not migrated
     const isMigrated = await isDomainMigrated(context, event.args.node);
-    if (isMigrated) return;
+    const isRootNode = event.args.node === ROOT_NODE;
+
+    // inverted logic of https://github.com/ensdomains/ens-subgraph/blob/master/src/ensRegistry.ts#L246
+    // NOTE: the subgraph must include an exception here for the root node because it starts out
+    // isMigrated: true, but we definitely still want to handle NewResolver events for it.
+    if (isMigrated && !isRootNode) return;
     return handleNewResolver({ context, event });
   });
 
@@ -49,6 +47,12 @@ export default function () {
   });
 
   ponder.on(pluginNamespace("RegistryOld:Transfer"), async ({ context, event }) => {
+    // NOTE: this logic derived from the subgraph introduces a bug for queries with a blockheight
+    // below 9380380, when the new Registry was deployed, as it implicitly ignores Transfer events
+    // of the ROOT_NODE. as a result, the root node's owner is always zeroAddress until the new
+    // Registry events are picked up. for backwards compatibility this beahvior is re-implemented
+    // here.
+
     const isMigrated = await isDomainMigrated(context, event.args.node);
     if (isMigrated) return;
     return handleTransfer({ context, event });

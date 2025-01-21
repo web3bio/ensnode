@@ -2,7 +2,7 @@ import { ContractConfig, createConfig, factory, mergeAbis } from "ponder";
 import { http, getAbiItem } from "viem";
 
 import { linea } from "viem/chains";
-import { blockConfig } from "../../lib/helpers";
+import { blockConfig, rpcEndpointUrl, rpcMaxRequestsPerSecond } from "../../lib/helpers";
 import { createPluginNamespace } from "../../lib/plugin-helpers";
 import { BaseRegistrar } from "./abis/BaseRegistrar";
 import { EthRegistrarController } from "./abis/EthRegistrarController";
@@ -14,7 +14,7 @@ export const ownedName = "linea.eth";
 
 export const pluginNamespace = createPluginNamespace(ownedName);
 
-// constrain the ponder indexing between the following start/end blocks
+// constrain indexing between the following start/end blocks
 // https://ponder.sh/0_6/docs/contracts-and-networks#block-range
 const START_BLOCK: ContractConfig["startBlock"] = undefined;
 const END_BLOCK: ContractConfig["endBlock"] = undefined;
@@ -23,7 +23,8 @@ export const config = createConfig({
   networks: {
     linea: {
       chainId: linea.id,
-      transport: http(process.env[`RPC_URL_${linea.id}`]),
+      transport: http(rpcEndpointUrl(linea.id)),
+      maxRequestsPerSecond: rpcMaxRequestsPerSecond(linea.id),
     },
   },
   contracts: {
@@ -36,11 +37,23 @@ export const config = createConfig({
     [pluginNamespace("Resolver")]: {
       network: "linea",
       abi: Resolver,
-      address: factory({
-        address: "0x50130b669B28C339991d8676FA73CF122a121267",
-        event: getAbiItem({ abi: Registry, name: "NewResolver" }),
-        parameter: "resolver",
-      }),
+      // NOTE: this indexes every event ever emitted that looks like this
+      filter: {
+        event: [
+          "AddrChanged",
+          "AddressChanged",
+          "NameChanged",
+          "ABIChanged",
+          "PubkeyChanged",
+          "TextChanged",
+          "ContenthashChanged",
+          "InterfaceChanged",
+          "VersionChanged",
+          "DNSRecordChanged",
+          "DNSRecordDeleted",
+          "DNSZonehashChanged",
+        ],
+      },
       ...blockConfig(START_BLOCK, 6682888, END_BLOCK),
     },
     [pluginNamespace("BaseRegistrar")]: {
