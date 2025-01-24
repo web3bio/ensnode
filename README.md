@@ -1,6 +1,12 @@
 # ENSNode
 
-> a multichain ENS indexer, powered by Ponder
+ENSNode is a multichain indexer for ENS, powered by Ponder.
+
+The ENSNode monorepo contains multiple modules in the following subdirectories:
+- [`apps`](apps)  executable applications.
+- [`packages`](packages) for libraries that can be embedded into apps.
+
+The main module of this repository is the ENSNode app found in [`apps/ensnode`](apps/ensnode).
 
 ## Quick start
 
@@ -19,18 +25,26 @@
 
 ### Run the indexer
 
+#### Prepare workspace environment
 Clone this repository:
 ```
 git clone git@github.com:namehash/ensnode.git
 cd ensnode
 ```
 
-Install dependencies:
+Install workspace dependencies:
 ```
 pnpm install
 ```
 
-Configure for your local environment:
+#### Prepare application environment
+
+Go into the main ENSNode application root directory:
+```
+cd apps/ensnode
+```
+
+Configure for your local application environment:
 ```
 cp .env.local.example .env.local
 ```
@@ -48,15 +62,15 @@ Once your `.env.local` is configured, launch the indexer by running:
 
 To learn more about those commands, go to https://ponder.sh/docs/api-reference/ponder-cli#dev
 
-### Query index
+### Query indexed data
 
-The ENSNode exposes two GraphQL endpoints to query:
+ENSNode exposes two GraphQL endpoints to query:
 - `/` uses a Ponder-native GraphQL schema
-- `/subgraph` uses a subgraph-native GraphQL schema
+- `/subgraph` uses a subgraph-compatible GraphQL schema
 
 #### Examples
 
-Fetching data about most recently-created domains while skipping some initial records.
+Fetch data about the three most recently-created domains.
 
 <details>
   <summary>Ponder-native query</summary>
@@ -66,17 +80,12 @@ Fetching data about most recently-created domains while skipping some initial re
     domains(
       orderBy: "createdAt"
       orderDirection: "desc"
-      after: "eyJjcmVhdGVkQXQiOnsiX190eXBlIjoiYmlnaW50IiwidmFsdWUiOiIxNjM5ODk1NzYxIn0sImlkIjoiMHhkNTczOGJjNGMxYzdhZDYyYWM0N2IyMWNlYmU1ZGZjOWZkNjVkNTk4NTZmNmYyNDIxYjE5N2Q0ZjgxNmFkZTRjIn0"
       limit: 3
     ) {
       items {
         name
         expiryDate
       }
-      pageInfo {
-        endCursor
-      }
-      totalCount
     }
   }
   ```
@@ -90,23 +99,18 @@ Fetching data about most recently-created domains while skipping some initial re
         "domains": {
           "items": [
             {
-              "name": "cdkey.eth",
-              "expiryDate": "1963241281"
+              "name": "ensanguo.eth",
+              "expiryDate": "1758170255"
             },
             {
-              "name": "threeion.eth",
-              "expiryDate": "1710785665"
+              "name": "fiffer.eth",
+              "expiryDate": "2041994243"
             },
             {
-              "name": "humes.eth",
-              "expiryDate": "1710785665"
+              "name": "rifaisicilia.eth",
+              "expiryDate": "1758170039"
             }
-          ],
-          "pageInfo": {
-            "endCursor": "eyJjcmVhdGVkQXQiOnsiX190eXBlIjoiYmlnaW50IiwidmFsdWUiOiIxNjM5ODk1NzYxIn0sImlkIjoiMHgyZWFmNmQ1YjU1YjdhZWI0NmNiZmRiMjVkN2VjOGY4MWYxNDg2YmFmNWFiNjhkZTM5M2YzYTcyNjM1ZDdmN2FkIn0="
-          },
-          "totalCount": 982390
-        }
+          ]
       }
     }
     ```
@@ -114,11 +118,11 @@ Fetching data about most recently-created domains while skipping some initial re
 </details>
 
 <details>
-  <summary>Subgraph-native query</summary>
+  <summary>Subgraph-compatible query</summary>
 
   ```gql
   {
-    domains(orderBy: createdAt, orderDirection: desc, skip: 40, first: 3) {
+    domains(orderBy: createdAt, orderDirection: desc, first: 3) {
         name
         expiryDate
     }
@@ -133,16 +137,16 @@ Fetching data about most recently-created domains while skipping some initial re
       "data": {
         "domains": [
           {
-            "name": "🐧🐧🐧🐧🐧🐧🐧🐧🐧.eth",
-            "expiryDate": "1710785244"
+            "name": "ensanguo.eth",
+            "expiryDate": "1758170255"
           },
           {
-            "name": "rebelteenapeclub.eth",
-            "expiryDate": "1679228224"
+            "name": "fiffer.eth",
+            "expiryDate": "2041994243"
           },
           {
-            "name": "[b4201276b6f7ffe5a50b0c3c1406c21295ab9f553107ddc9c715be2f9a6f6e90].[e5e14487b78f85faa6e1808e89246cf57dd34831548ff2e6097380d98db2504a].[dec08c9dbbdd0890e300eb5062089b2d4b1c40e3673bbccb5423f7b37dcf9a9c]",
-            "expiryDate": null
+            "name": "rifaisicilia.eth",
+            "expiryDate": "1758170039"
           }
         ]
       }
@@ -150,56 +154,3 @@ Fetching data about most recently-created domains while skipping some initial re
     ```
   </details>
 </details>
-
-## Overview
-
-
-## goals
-
-> an optimized, multichain ens indexer that the community loves and integrates
-
-- ease of deployment for indiviudals to run their own infra
-- faster, more efficient, easier to use and deploy implementation
-- v1 — **high confidence in subgraph equivalency**
-  - 1:1 equivalency of results for queries via ensjs
-    - 100% ensjs, ens-app-v3 test suites passing
-    - should 'just work', following [this documentation](https://github.com/ensdomains/ensjs/blob/main/docs/basics/custom-subgraph-uris.md)
-  - ensjs equivalency confirmed via [ens-subgraph-transition-tools](https://github.com/namehash/ens-subgraph-transition-tools)
-- v2 — **optimized multichain indexer w/ unified namespace**
-  - true multichain indexing (mainnet, base, linea, etc)
-  - flattened, unified, multichain namespace
-  - support key ens-app-v3 and wallet ENS funtions via optimized resolvers & PRs
-  - high quality human-readable (healed) list of names by owner, necessary for many UX
-  - (possible) continued backwards compatibility with subgraph
-  - support indexing subset of data, i.e. only domains under parent node
-
-## next up
-
-- [ ] `_nocase` case-insensitive where filters
-  - not used interally but ensjs does technically expose this as an available filter to users
-- [ ] confirm all the schema relations are configured correctly
-- [ ] integrate rainbow tables for label healing
-  - load the table dump into pglite (or just postgres) & query synchronously to match existing behavior
-  - https://github.com/graphprotocol/ens-rainbow
-- [ ] CI/CD with indexing?
-  - integrate index to recent block (10m?) and validate with `snapshot-eq` b4 passing
-- [ ] better understand reverse resolution & how that pertains to L2 primary names and impacts the future schema, etc
-
-## notes
-
-- eth registry is ERC721, has many controllers (), no knowledge of pricing — delegated to registrar controllers
-- eth old registry & new registry migration due to security issue, new then fallback to old, therefore ignore all old evens on domains that have been seen by new registry
-
-### `eth` plugin performance
-
-estimated mainnet-only backfill time @ <=500rps = **~13 hours** on M1 Macbook (>10x speedup vs subgraph)
-
-## ENSIP Ideas
-
-- unable to automatically identify subname registries via onchain event, CCIP standard dosn't include any info about data source, so we'll need to encode manually for now
-- ENSIP - shared interface for subdomain registrars
-- ENSIP — standard for how a resolver on L1 can (optionally) emit an event specifying contract on an L2 that it proxies records from
-  - optional, in the popular case of L2-managed subnames
-  - removes centralized dependency on the CCIP Gateway
-  - flaky test experience with .cb.id name gateway
-  - also helps indexer discovery

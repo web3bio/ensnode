@@ -1,0 +1,39 @@
+{
+  "name": "ensnode-utils",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "A utility library for interacting with ENS data",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/namehash/ensnode.git",
+    "directory": "packages/ensnode-utils"
+  },
+  "homepage": "https://github.com/namehash/ensnode/tree/main/packages/ensnode-utils",
+  "exports": {
+    "./helpers": "./src/helpers.ts",
+    "./ids": "./src/ids.ts",
+    "./plugin-helpers": "./src/plugin-helpers.ts",
+    "./subname-helpers": "./src/subname-helpers.ts"
+  },
+  "scripts": {
+    "lint": "biome check --write .",
+    "lint:ci": "biome ci",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "viem": "^catalog:"
+  },
+  "devDependencies": {
+    "@namehash/shared-configs": "workspace:",
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "viem": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.14"
+  }
+}
