@@ -2,6 +2,7 @@ import { Context } from "ponder:registry";
 import schema from "ponder:schema";
 import { encodeLabelhash } from "@ensdomains/ensjs/utils";
 import { ROOT_NODE, makeSubnodeNamehash } from "ensnode-utils/subname-helpers";
+import type { Labelhash, Node } from "ensnode-utils/types";
 import { type Hex, zeroAddress } from "viem";
 import { sharedEventValues, upsertAccount, upsertResolver } from "../lib/db-helpers";
 import { makeResolverId } from "../lib/ids";
@@ -114,7 +115,7 @@ export const handleNewOwner =
     event,
   }: {
     context: Context;
-    event: EventWithArgs<{ node: Hex; label: Hex; owner: Hex }>;
+    event: EventWithArgs<{ node: Node; label: Labelhash; owner: Hex }>;
   }) => {
     const { label, node, owner } = event.args;
 
@@ -178,7 +179,7 @@ export async function handleNewTTL({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; ttl: bigint }>;
+  event: EventWithArgs<{ node: Node; ttl: bigint }>;
 }) {
   const { node, ttl } = event.args;
 
@@ -200,7 +201,7 @@ export async function handleNewResolver({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; resolver: Hex }>;
+  event: EventWithArgs<{ node: Node; resolver: Hex }>;
 }) {
   const { node, resolver: resolverAddress } = event.args;
 

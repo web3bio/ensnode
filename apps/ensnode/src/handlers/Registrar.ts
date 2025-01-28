@@ -5,19 +5,22 @@ import {
   makeSubnodeNamehash,
   tokenIdToLabel,
 } from "ensnode-utils/subname-helpers";
+import type { Labelhash } from "ensnode-utils/types";
 import { type Hex, labelhash, namehash } from "viem";
 import { sharedEventValues, upsertAccount, upsertRegistration } from "../lib/db-helpers";
+import { makeRegistrationId } from "../lib/ids";
 import { EventWithArgs } from "../lib/ponder-helpers";
+import type { OwnedName } from "../lib/types";
 
 const GRACE_PERIOD_SECONDS = 7776000n; // 90 days in seconds
 
 /**
  * A factory function that returns Ponder indexing handlers for a specified subname.
  */
-export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
+export const makeRegistrarHandlers = (ownedName: OwnedName) => {
   const ownedSubnameNode = namehash(ownedName);
 
-  async function setNamePreimage(context: Context, name: string, label: Hex, cost: bigint) {
+  async function setNamePreimage(context: Context, name: string, label: Labelhash, cost: bigint) {
     // NOTE: ponder intentionally removes null bytes to spare users the footgun of
     // inserting null bytes into postgres. We don't like this behavior, though, because it's
     // important that 'vitalik\x00'.eth and vitalik.eth are differentiable.
@@ -42,7 +45,11 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
         .set({ labelName: name, name: `${name}.${ownedName}` });
     }
 
-    await context.db.update(schema.registration, { id: label }).set({ labelName: name, cost });
+    await context.db
+      .update(schema.registration, {
+        id: makeRegistrationId(ownedName, label, node),
+      })
+      .set({ labelName: name, cost });
   }
 
   return {
@@ -68,7 +75,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       const labelName = undefined;
 
       await upsertRegistration(context, {
-        id: label,
+        id: makeRegistrationId(ownedName, label, node),
         domainId: node,
         registrationDate: event.block.timestamp,
         expiryDate: expires,
@@ -96,7 +103,11 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       event,
     }: {
       context: Context;
-      event: EventWithArgs<{ name: string; label: Hex; cost: bigint }>;
+      event: EventWithArgs<{
+        name: string;
+        label: Labelhash;
+        cost: bigint;
+      }>;
     }) {
       const { name, label, cost } = event.args;
       await setNamePreimage(context, name, label, cost);
@@ -107,7 +118,7 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       event,
     }: {
       context: Context;
-      event: EventWithArgs<{ name: string; label: Hex; cost: bigint }>;
+      event: EventWithArgs<{ name: string; label: Labelhash; cost: bigint }>;
     }) {
       const { name, label, cost } = event.args;
       await setNamePreimage(context, name, label, cost);
@@ -125,7 +136,11 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
       const label = tokenIdToLabel(id);
       const node = makeSubnodeNamehash(ownedSubnameNode, label);
 
-      await context.db.update(schema.registration, { id: label }).set({ expiryDate: expires });
+      await context.db
+        .update(schema.registration, {
+          id: makeRegistrationId(ownedName, label, node),
+        })
+        .set({ expiryDate: expires });
 
       await context.db
         .update(schema.domain, { id: node })
@@ -152,11 +167,16 @@ export const makeRegistrarHandlers = (ownedName: `${string}eth`) => {
 
       const label = tokenIdToLabel(tokenId);
       const node = makeSubnodeNamehash(ownedSubnameNode, label);
+      const registrationId = makeRegistrationId(ownedName, label, node);
 
-      const registration = await context.db.find(schema.registration, { id: label });
+      const registration = await context.db.find(schema.registration, {
+        id: registrationId,
+      });
       if (!registration) return;
 
-      await context.db.update(schema.registration, { id: label }).set({ registrantId: to });
+      await context.db
+        .update(schema.registration, { id: registrationId })
+        .set({ registrantId: to });
 
       await context.db.update(schema.domain, { id: node }).set({ registrantId: to });
 

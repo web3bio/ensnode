@@ -1,16 +1,20 @@
-import { type Context, type Event, type EventNames } from "ponder:registry";
+import { type Context } from "ponder:registry";
 import schema from "ponder:schema";
 import { checkPccBurned } from "@ensdomains/ensjs/utils";
 import { decodeDNSPacketBytes, tokenIdToLabel } from "ensnode-utils/subname-helpers";
+import type { Node } from "ensnode-utils/types";
 import { type Address, type Hex, hexToBytes, namehash } from "viem";
 import { sharedEventValues, upsertAccount } from "../lib/db-helpers";
 import { bigintMax } from "../lib/helpers";
 import { makeEventId } from "../lib/ids";
 import { EventWithArgs } from "../lib/ponder-helpers";
+import type { OwnedName } from "../lib/types";
 
 // if the wrappedDomain has PCC set in fuses, set domain's expiryDate to the greatest of the two
-async function materializeDomainExpiryDate(context: Context, node: Hex) {
-  const wrappedDomain = await context.db.find(schema.wrappedDomain, { id: node });
+async function materializeDomainExpiryDate(context: Context, node: Node) {
+  const wrappedDomain = await context.db.find(schema.wrappedDomain, {
+    id: node,
+  });
   if (!wrappedDomain) throw new Error(`Expected WrappedDomain(${node})`);
 
   // NOTE: the subgraph has a helper function called [checkPccBurned](https://github.com/ensdomains/ens-subgraph/blob/master/src/nameWrapper.ts#L63)
@@ -70,7 +74,7 @@ async function handleTransfer(
   });
 }
 
-export const makeNameWrapperHandlers = (ownedName: `${string}eth`) => {
+export const makeNameWrapperHandlers = (ownedName: OwnedName) => {
   const ownedSubnameNode = namehash(ownedName);
 
   return {
@@ -80,7 +84,7 @@ export const makeNameWrapperHandlers = (ownedName: `${string}eth`) => {
     }: {
       context: Context;
       event: EventWithArgs<{
-        node: Hex;
+        node: Node;
         owner: Hex;
         fuses: number;
         expiry: bigint;
@@ -128,7 +132,7 @@ export const makeNameWrapperHandlers = (ownedName: `${string}eth`) => {
       event,
     }: {
       context: Context;
-      event: EventWithArgs<{ node: Hex; owner: Hex }>;
+      event: EventWithArgs<{ node: Node; owner: Hex }>;
     }) {
       const { node, owner } = event.args;
 
@@ -157,13 +161,15 @@ export const makeNameWrapperHandlers = (ownedName: `${string}eth`) => {
       event,
     }: {
       context: Context;
-      event: EventWithArgs<{ node: Hex; fuses: number }>;
+      event: EventWithArgs<{ node: Node; fuses: number }>;
     }) {
       const { node, fuses } = event.args;
 
       // NOTE: subgraph no-ops this event if there's not a wrappedDomain already in the db.
       // https://github.com/ensdomains/ens-subgraph/blob/master/src/nameWrapper.ts#L144
-      const wrappedDomain = await context.db.find(schema.wrappedDomain, { id: node });
+      const wrappedDomain = await context.db.find(schema.wrappedDomain, {
+        id: node,
+      });
       if (wrappedDomain) {
         // set fuses
         await context.db.update(schema.wrappedDomain, { id: node }).set({ fuses });
@@ -184,13 +190,15 @@ export const makeNameWrapperHandlers = (ownedName: `${string}eth`) => {
       event,
     }: {
       context: Context;
-      event: EventWithArgs<{ node: Hex; expiry: bigint }>;
+      event: EventWithArgs<{ node: Node; expiry: bigint }>;
     }) {
       const { node, expiry } = event.args;
 
       // NOTE: subgraph no-ops this event if there's not a wrappedDomain already in the db.
       // https://github.com/ensdomains/ens-subgraph/blob/master/src/nameWrapper.ts#L169
-      const wrappedDomain = await context.db.find(schema.wrappedDomain, { id: node });
+      const wrappedDomain = await context.db.find(schema.wrappedDomain, {
+        id: node,
+      });
       if (wrappedDomain) {
         // update expiryDate
         await context.db.update(schema.wrappedDomain, { id: node }).set({ expiryDate: expiry });

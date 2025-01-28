@@ -1,5 +1,6 @@
 import { type Context } from "ponder:registry";
 import schema from "ponder:schema";
+import type { Node } from "ensnode-utils/types";
 import { Hex } from "viem";
 import { sharedEventValues, upsertAccount, upsertResolver } from "../lib/db-helpers";
 import { hasNullByte, uniq } from "../lib/helpers";
@@ -17,7 +18,7 @@ export async function handleAddrChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; a: Hex }>;
+  event: EventWithArgs<{ node: Node; a: Hex }>;
 }) {
   const { a: address, node } = event.args;
   await upsertAccount(context, address);
@@ -49,7 +50,7 @@ export async function handleAddressChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; coinType: bigint; newAddress: Hex }>;
+  event: EventWithArgs<{ node: Node; coinType: bigint; newAddress: Hex }>;
 }) {
   const { node, coinType, newAddress } = event.args;
   await upsertAccount(context, newAddress);
@@ -80,7 +81,7 @@ export async function handleNameChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; name: string }>;
+  event: EventWithArgs<{ node: Node; name: string }>;
 }) {
   const { node, name } = event.args;
   if (hasNullByte(name)) return;
@@ -105,7 +106,7 @@ export async function handleABIChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; contentType: bigint }>;
+  event: EventWithArgs<{ node: Node; contentType: bigint }>;
 }) {
   const { node, contentType } = event.args;
   const id = makeResolverId(event.log.address, node);
@@ -130,7 +131,7 @@ export async function handlePubkeyChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; x: Hex; y: Hex }>;
+  event: EventWithArgs<{ node: Node; x: Hex; y: Hex }>;
 }) {
   const { node, x, y } = event.args;
   const id = makeResolverId(event.log.address, node);
@@ -156,7 +157,12 @@ export async function handleTextChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; indexedKey: string; key: string; value?: string }>;
+  event: EventWithArgs<{
+    node: Node;
+    indexedKey: string;
+    key: string;
+    value?: string;
+  }>;
 }) {
   const { node, key, value } = event.args;
   const id = makeResolverId(event.log.address, node);
@@ -185,7 +191,7 @@ export async function handleContenthashChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; hash: Hex }>;
+  event: EventWithArgs<{ node: Node; hash: Hex }>;
 }) {
   const { node, hash } = event.args;
   const id = makeResolverId(event.log.address, node);
@@ -209,7 +215,7 @@ export async function handleInterfaceChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; interfaceID: Hex; implementer: Hex }>;
+  event: EventWithArgs<{ node: Node; interfaceID: Hex; implementer: Hex }>;
 }) {
   const { node, interfaceID, implementer } = event.args;
   const id = makeResolverId(event.log.address, node);
@@ -233,7 +239,12 @@ export async function handleAuthorisationChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; owner: Hex; target: Hex; isAuthorised: boolean }>;
+  event: EventWithArgs<{
+    node: Node;
+    owner: Hex;
+    target: Hex;
+    isAuthorised: boolean;
+  }>;
 }) {
   const { node, owner, target, isAuthorised } = event.args;
   const id = makeResolverId(event.log.address, node);
@@ -259,7 +270,7 @@ export async function handleVersionChanged({
   event,
 }: {
   context: Context;
-  event: EventWithArgs<{ node: Hex; newVersion: bigint }>;
+  event: EventWithArgs<{ node: Node; newVersion: bigint }>;
 }) {
   // a version change nulls out the resolver
   const { node, newVersion } = event.args;
