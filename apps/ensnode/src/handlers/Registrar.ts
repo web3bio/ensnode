@@ -3,7 +3,7 @@ import schema from "ponder:schema";
 import { isLabelIndexable, makeSubnodeNamehash } from "ensnode-utils/subname-helpers";
 import type { Labelhash } from "ensnode-utils/types";
 import { type Hex, labelhash as _labelhash, namehash } from "viem";
-import { sharedEventValues, upsertAccount, upsertRegistration } from "../lib/db-helpers";
+import { createSharedEventValues, upsertAccount, upsertRegistration } from "../lib/db-helpers";
 import { makeRegistrationId } from "../lib/ids";
 import { EventWithArgs } from "../lib/ponder-helpers";
 import type { OwnedName } from "../lib/types";
@@ -15,6 +15,7 @@ const GRACE_PERIOD_SECONDS = 7776000n; // 90 days in seconds
  */
 export const makeRegistrarHandlers = (ownedName: OwnedName) => {
   const ownedNameNode = namehash(ownedName);
+  const sharedEventValues = createSharedEventValues(ownedName);
 
   async function setNamePreimage(
     context: Context,
@@ -63,7 +64,11 @@ export const makeRegistrarHandlers = (ownedName: OwnedName) => {
       event,
     }: {
       context: Context;
-      event: EventWithArgs<{ labelhash: Labelhash; owner: Hex; expires: bigint }>;
+      event: EventWithArgs<{
+        labelhash: Labelhash;
+        owner: Hex;
+        expires: bigint;
+      }>;
     }) {
       const { labelhash, owner, expires } = event.args;
 

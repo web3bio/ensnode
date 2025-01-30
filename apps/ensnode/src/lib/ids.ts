@@ -5,10 +5,33 @@ import type { Address, Hex } from "viem";
 export const makeResolverId = (address: Address, node: Hex) =>
   [address.toLowerCase(), node].join("-");
 
-// https://github.com/ensdomains/ens-subgraph/blob/master/src/utils.ts#L5
-// produces `blocknumber-logIndex` or `blocknumber-logindex-transferindex`
-export const makeEventId = (blockNumber: bigint, logIndex: number, transferIndex?: number) =>
-  [blockNumber.toString(), logIndex.toString(), transferIndex?.toString()]
+/**
+ * Makes a cross-registrar unique event ID.
+ *
+ * The ENS Subgraph indexes events from a single registrar. However, ENSNode
+ * enables indexing of events from multiple registrars, which can lead to event
+ * ID collisions. This function allows keeping Subgraph-compatible event IDs
+ * (produces `blocknumber-logIndex` or `blocknumber-logindex-transferindex`)
+ * while ensuring event id uniqueness across registrars.
+ *
+ * @param registrarName the name of the registrar associated with the event
+ * @param blockNumber
+ * @param logIndex
+ * @param transferIndex
+ * @returns
+ */
+export const makeEventId = (
+  registrarName: string,
+  blockNumber: bigint,
+  logIndex: number,
+  transferIndex?: number,
+) =>
+  [
+    registrarName === "eth" ? undefined : registrarName,
+    blockNumber.toString(),
+    logIndex.toString(),
+    transferIndex?.toString(),
+  ]
     .filter(Boolean)
     .join("-");
 
