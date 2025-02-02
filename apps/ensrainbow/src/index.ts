@@ -3,17 +3,19 @@ import { serve } from "@hono/node-server";
 import { ClassicLevel } from "classic-level";
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { ByteArray } from 'viem'
+import { labelHashToBytes } from "./utils/label-utils";
 
 export const app = new Hono();
 export const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), "data");
 
 console.log(`Initializing ENS Rainbow with data directory: ${DATA_DIR}`);
 
-export let db: ClassicLevel<Buffer, string>;
+export let db: ClassicLevel<ByteArray, string>;
 
 // Initialize database with error handling
 try {
-  db = new ClassicLevel<Buffer, string>(DATA_DIR, {
+  db = new ClassicLevel<ByteArray, string>(DATA_DIR, {
     valueEncoding: "utf8",
     keyEncoding: "binary",
   });
@@ -23,26 +25,31 @@ try {
   process.exit(1);
 }
 
+
 app.get("/v1/heal/:labelhash", async (c: Context) => {
-  const labelhash = c.req.param("labelhash")?.toLowerCase();
+  const labelhash = c.req.param("labelhash");
+  
 
-  if (!labelhash) {
-    return c.json({ error: "Missing labelhash parameter" }, 400);
-  }
 
-  if (!/^(0x)?[0-9a-f]{64}$/.test(labelhash)) {
-    return c.json({ error: "Invalid labelhash - must be a 32 byte hex string" }, 400);
+  let labelHashBytes: ByteArray;
+  try {
+    labelHashBytes = labelHashToBytes(labelhash as `0x${string}`);
+  } catch (error) {
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 400);
+    }
+    return c.json({ error: "Invalid labelhash - must be a valid hex string" }, 400);
   }
 
   try {
-    // Convert hex string to Buffer, stripping '0x' prefix if present
-    const hashBytes = Buffer.from(labelhash.replace(/^0x/, ""), "hex");
-    const label = await db.get(hashBytes);
+    const label = await db.get(labelHashBytes);
     console.info(`Successfully healed labelhash ${labelhash} to label "${label}"`);
     return c.text(label);
   } catch (error) {
     if ((error as any).code === "LEVEL_NOT_FOUND") {
-      console.info(`Unhealable labelhash request: ${labelhash}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.info(`Unhealable labelhash request: ${labelhash}`);
+      }
       return c.json({ error: "Not found" }, 404);
     }
     console.error("Error healing label:", error);

@@ -1,6 +1,8 @@
 import { serve } from "@hono/node-server";
 /// <reference types="vitest" />
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { labelhash } from "viem";
+import { labelHashToBytes } from "./utils/label-utils";
 import { app, db } from "./index";
 
 describe("ENS Rainbow API", () => {
@@ -28,12 +30,12 @@ describe("ENS Rainbow API", () => {
 
   describe("GET /v1/heal/:labelhash", () => {
     it("should return the label for a valid labelhash", async () => {
-      const validLabelhash = "0x7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d";
       const validLabel = "test-label";
+      const validLabelhash = labelhash(validLabel);
 
       // Add test data
-      const hashBytes = Buffer.from(validLabelhash.replace(/^0x/, ""), "hex");
-      await db.put(hashBytes, validLabel);
+      const labelHashBytes = labelHashToBytes(validLabelhash);
+      await db.put(labelHashBytes, validLabel);
 
       const response = await fetch(`http://localhost:3002/v1/heal/${validLabelhash}`);
       expect(response.status).toBe(200);
@@ -52,7 +54,7 @@ describe("ENS Rainbow API", () => {
       const response = await fetch("http://localhost:3002/v1/heal/invalid-hash");
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data).toEqual({ error: "Invalid labelhash - must be a 32 byte hex string" });
+      expect(data).toEqual({ error: "Invalid labelhash length 12 characters (expected 66)" });
     });
 
     it("should handle non-existent labelhash", async () => {
@@ -83,30 +85,32 @@ describe("ENS Rainbow API", () => {
 
     it("should return correct count of entries", async () => {
       // Add some test data
-      const testData = [
-        {
-          hash: "0x1111111111111111111111111111111111111111111111111111111111111111",
-          label: "test1",
-        },
-        {
-          hash: "0x2222222222222222222222222222222222222222222222222222222222222222",
-          label: "test2",
-        },
-        {
-          hash: "0x3333333333333333333333333333333333333333333333333333333333333333",
-          label: "test3",
-        },
-      ];
+      const testData = ["test1", "test2", "test2", "test3"].map(label => ({
+        hash: labelhash(label),
+        label: label
+      }));
 
       for (const entry of testData) {
-        const hashBytes = Buffer.from(entry.hash.replace(/^0x/, ""), "hex");
-        await db.put(hashBytes, entry.label);
+        const labelHashBytes = labelHashToBytes(entry.hash);
+        await db.put(labelHashBytes, entry.label);
       }
 
       const response = await fetch("http://localhost:3002/v1/labels/count");
       expect(response.status).toBe(200);
       const data = (await response.json()) as { count: number; timestamp: string };
       expect(data.count).toBe(3);
+    });
+  });
+
+  describe("LevelDB operations", () => {
+    it("should store labels containing null bytes", async () => {
+      const labelWithNull = "test\0label";
+      const labelWithNullLabelhash = labelhash(labelWithNull);
+      const labelHashBytes = labelHashToBytes(labelWithNullLabelhash);
+
+      await db.put(labelHashBytes, labelWithNull);
+      const retrieved = await db.get(labelHashBytes);
+      expect(retrieved).toBe(labelWithNull);
     });
   });
 });
