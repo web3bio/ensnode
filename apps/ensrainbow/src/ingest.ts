@@ -28,6 +28,11 @@ async function loadEnsNamesToLevelDB(): Promise<void> {
     keyEncoding: "binary",
   });
 
+  // Clear existing database before starting
+  console.log("Clearing existing database...");
+  await db.clear();
+  console.log("Database cleared.");
+
   const bar = new ProgressBar(
     "Processing [:bar] :current/:total lines (:percent) - :rate lines/sec - :etas remaining",
     {
