@@ -114,7 +114,13 @@ Example:
 curl http://localhost:3001/v1/heal/0xaf2caa1c2ca1d027f1ac823b529d0a67cd144264b2789fa2ea4d63a67c7103cc
 ```
 
-Response: `vitalik`
+Response:
+```json
+{
+  "status": "success",
+  "label": "vitalik"
+}
+```
 
 Note on returned labels: The service returns labels exactly as they appear in the source data. This means:
 
@@ -127,24 +133,27 @@ Error Responses:
 - `400 Bad Request`: When the labelhash parameter is missing or invalid
   ```json
   {
-    "error": "Missing labelhash parameter"
+    "status": "error",
+    "error": "Invalid labelhash - must be a valid hex string",
+    "errorCode": 400
   }
   ```
-  ```json
-  {
-    "error": "Invalid labelhash - must be a 32 byte hex string"
-  }
-  ```
+
 - `404 Not Found`: When no label is found for the given labelhash
   ```json
   {
-    "error": "Not found"
+    "status": "error",
+    "error": "Label not found",
+    "errorCode": 404
   }
   ```
+
 - `500 Internal Server Error`: When an unexpected error occurs
   ```json
   {
-    "error": "Internal server error"
+    "status": "error",
+    "error": "Internal server error",
+    "errorCode": 500
   }
   ```
 
@@ -154,7 +163,14 @@ Error Responses:
 curl http://localhost:3001/v1/labels/count
 ```
 
-Response: `{"count":133856480, "timestamp":"2025-01-30T11:18:56Z"}`
+Response:
+```json
+{
+  "status": "success",
+  "count": 133856480,
+  "timestamp": "2024-01-30T11:18:56Z"
+}
+```
 
 ## Local Development
 
