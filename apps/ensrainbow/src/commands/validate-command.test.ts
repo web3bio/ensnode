@@ -4,8 +4,8 @@ import { labelHashToBytes } from "ensrainbow-sdk/label-utils";
 import { mkdtemp, rm } from "fs/promises";
 import { labelhash } from "viem";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { LABELHASH_COUNT_KEY, createDatabase } from "../lib/database.js";
-import { validateCommand } from "./validate-command.js";
+import { LABELHASH_COUNT_KEY, createDatabase } from "../lib/database";
+import { validateCommand } from "./validate-command";
 
 describe("Validate Command", () => {
   let tempDir: string;

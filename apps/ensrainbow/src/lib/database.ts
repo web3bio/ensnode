@@ -1,11 +1,11 @@
 import { join } from "path";
 import { ClassicLevel } from "classic-level";
 import { labelHashToBytes } from "ensrainbow-sdk/label-utils";
-import { ByteArray } from "viem";
-import { labelhash } from "viem";
-import { byteArraysEqual } from "../utils/byte-utils.js";
+import { ByteArray, labelhash } from "viem";
+
+import { byteArraysEqual } from "../utils/byte-utils";
 import { LogLevel, Logger, createLogger } from "../utils/logger";
-import { parseNonNegativeInteger } from "../utils/number-utils.js";
+import { parseNonNegativeInteger } from "../utils/number-utils";
 
 export const LABELHASH_COUNT_KEY = new Uint8Array([0xff, 0xff, 0xff, 0xff]) as ByteArray;
 export const INGESTION_IN_PROGRESS_KEY = new Uint8Array([0xff, 0xff, 0xff, 0xfe]) as ByteArray;

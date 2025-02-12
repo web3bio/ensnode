@@ -2,15 +2,16 @@ import { createReadStream } from "fs";
 import { createInterface } from "readline";
 import { createGunzip } from "zlib";
 import ProgressBar from "progress";
+
 import {
   clearIngestionMarker,
   createDatabase,
   exitIfIncompleteIngestion,
   markIngestionStarted,
-} from "../lib/database.js";
-import { LogLevel, createLogger } from "../utils/logger.js";
-import { buildRainbowRecord } from "../utils/rainbow-record.js";
-import { countCommand } from "./count-command.js";
+} from "../lib/database";
+import { LogLevel, createLogger } from "../utils/logger";
+import { buildRainbowRecord } from "../utils/rainbow-record";
+import { countCommand } from "./count-command";
 
 export interface IngestCommandOptions {
   inputFile: string;

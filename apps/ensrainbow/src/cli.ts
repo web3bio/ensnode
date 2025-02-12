@@ -2,11 +2,11 @@ import { join } from "path";
 import type { ArgumentsCamelCase, Argv } from "yargs";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
-import { ingestCommand } from "./commands/ingest-command.js";
-import { serverCommand } from "./commands/server-command.js";
-import { validateCommand } from "./commands/validate-command.js";
-import { getDataDir } from "./lib/database.js";
-import { LogLevel, logLevels } from "./utils/logger.js";
+import { ingestCommand } from "./commands/ingest-command";
+import { serverCommand } from "./commands/server-command";
+import { validateCommand } from "./commands/validate-command";
+import { getDataDir } from "./lib/database";
+import { LogLevel, logLevels } from "./utils/logger";
 
 function getDefaultLogLevel(): LogLevel {
   const envLogLevel = process.env.LOG_LEVEL as LogLevel;
@@ -70,7 +70,7 @@ yargs(hideBin(process.argv))
         .option("port", {
           type: "number",
           description: "Port to listen on",
-          default: 3001,
+          default: 3223,
         })
         .option("data-dir", {
           type: "string",

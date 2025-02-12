@@ -1,5 +1,5 @@
-import { openDatabase, validate } from "../lib/database.js";
-import { LogLevel, createLogger } from "../utils/logger.js";
+import { openDatabase, validate } from "../lib/database";
+import { LogLevel, createLogger } from "../utils/logger";
 
 export interface ValidateCommandOptions {
   dataDir: string;

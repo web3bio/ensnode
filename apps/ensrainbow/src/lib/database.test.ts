@@ -4,13 +4,13 @@ import { labelHashToBytes } from "ensrainbow-sdk/label-utils";
 import { mkdtemp, rm } from "fs/promises";
 import { labelhash } from "viem";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createLogger } from "../utils/logger.js";
+import { createLogger } from "../utils/logger";
 import {
   INGESTION_IN_PROGRESS_KEY,
   LABELHASH_COUNT_KEY,
   createDatabase,
   validate,
-} from "./database.js";
+} from "./database";
 
 describe("Database", () => {
   let tempDir: string;
