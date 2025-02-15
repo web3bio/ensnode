@@ -13,16 +13,41 @@ import {
 import { ByteArray } from "viem";
 import { LogLevel, Logger, createLogger } from "../utils/logger";
 import { parseNonNegativeInteger } from "../utils/number-utils";
-import { LABELHASH_COUNT_KEY } from "./database";
+import { LABELHASH_COUNT_KEY, isIngestionInProgress } from "./database";
 import { ENSRainbowDB, safeGet } from "./database";
 
 export class ENSRainbowServer {
   private readonly db: ENSRainbowDB;
   private readonly logger: Logger;
 
-  constructor(db: ENSRainbowDB, logLevel?: LogLevel) {
+  private constructor(db: ENSRainbowDB, logLevel?: LogLevel) {
     this.db = db;
     this.logger = createLogger(logLevel);
+  }
+
+  /**
+   * Creates a new ENSRainbowServer instance
+   * @param db The ENSRainbowDB instance
+   * @param logLevel Optional log level
+   * @throws Error if a "lite" validation of the database fails
+   */
+  public static async init(db: ENSRainbowDB, logLevel?: LogLevel): Promise<ENSRainbowServer> {
+    const server = new ENSRainbowServer(db, logLevel);
+
+    // Verify that the attached db fully completed its ingestion (ingestion not interrupted)
+    if (await isIngestionInProgress(db)) {
+      throw new Error("Database is in an invalid state: ingestion in progress flag is set");
+    }
+
+    // Verify we can get the rainbow record count
+    const countResponse = await server.labelCount();
+    if (countResponse.status === StatusCode.Error) {
+      throw new Error(
+        `Database is in an invalid state: failed to get rainbow record count: ${countResponse.error}`,
+      );
+    }
+
+    return server;
   }
 
   async heal(labelhash: `0x${string}`): Promise<HealResponse> {
