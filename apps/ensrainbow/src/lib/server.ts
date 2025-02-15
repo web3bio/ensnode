@@ -11,18 +11,20 @@ import {
   HealSuccess,
 } from "@ensnode/ensrainbow-sdk/types";
 import { ByteArray } from "viem";
-import { LogLevel, Logger, createLogger } from "../utils/logger";
+import { logger } from "../utils/logger";
 import { parseNonNegativeInteger } from "../utils/number-utils";
-import { LABELHASH_COUNT_KEY, isIngestionInProgress } from "./database";
+import {
+  LABELHASH_COUNT_KEY,
+  ensureIngestionNotIncomplete,
+  isIngestionInProgress,
+} from "./database";
 import { ENSRainbowDB, safeGet } from "./database";
 
 export class ENSRainbowServer {
   private readonly db: ENSRainbowDB;
-  private readonly logger: Logger;
 
-  private constructor(db: ENSRainbowDB, logLevel?: LogLevel) {
+  private constructor(db: ENSRainbowDB) {
     this.db = db;
-    this.logger = createLogger(logLevel);
   }
 
   /**
@@ -31,13 +33,11 @@ export class ENSRainbowServer {
    * @param logLevel Optional log level
    * @throws Error if a "lite" validation of the database fails
    */
-  public static async init(db: ENSRainbowDB, logLevel?: LogLevel): Promise<ENSRainbowServer> {
-    const server = new ENSRainbowServer(db, logLevel);
+  public static async init(db: ENSRainbowDB): Promise<ENSRainbowServer> {
+    const server = new ENSRainbowServer(db);
 
     // Verify that the attached db fully completed its ingestion (ingestion not interrupted)
-    if (await isIngestionInProgress(db)) {
-      throw new Error("Database is in an invalid state: ingestion in progress flag is set");
-    }
+    await ensureIngestionNotIncomplete(db);
 
     // Verify we can get the rainbow record count
     const countResponse = await server.labelCount();
@@ -66,7 +66,7 @@ export class ENSRainbowServer {
     try {
       const label = await safeGet(this.db, labelHashBytes);
       if (label === null) {
-        this.logger.info(`Unhealable labelhash request: ${labelhash}`);
+        logger.info(`Unhealable labelhash request: ${labelhash}`);
         return {
           status: StatusCode.Error,
           error: "Label not found",
@@ -74,13 +74,13 @@ export class ENSRainbowServer {
         } satisfies HealNotFoundError;
       }
 
-      this.logger.info(`Successfully healed labelhash ${labelhash} to label "${label}"`);
+      logger.info(`Successfully healed labelhash ${labelhash} to label "${label}"`);
       return {
         status: StatusCode.Success,
         label,
       } satisfies HealSuccess;
     } catch (error) {
-      this.logger.error("Error healing label:", error);
+      logger.error("Error healing label:", error);
       return {
         status: StatusCode.Error,
         error: "Internal server error",
@@ -102,7 +102,7 @@ export class ENSRainbowServer {
 
       const count = parseNonNegativeInteger(countStr);
       if (count === null) {
-        this.logger.error(`Invalid label count value in database: ${countStr}`);
+        logger.error(`Invalid label count value in database: ${countStr}`);
         return {
           status: StatusCode.Error,
           error: "Internal server error: Invalid label count format",
@@ -116,7 +116,7 @@ export class ENSRainbowServer {
         timestamp: new Date().toISOString(),
       } satisfies CountSuccess;
     } catch (error) {
-      this.logger.error("Failed to retrieve label count:", error);
+      logger.error("Failed to retrieve label count:", error);
       return {
         status: StatusCode.Error,
         error: "Internal server error",

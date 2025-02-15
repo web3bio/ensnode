@@ -242,11 +242,14 @@ The following environment variables can be used to configure different aspects o
 ### Global Variables
 These variables affect all commands:
 - `LOG_LEVEL`: Logging level, one of: "fatal", "error", "warn", "info", "debug", "trace", "silent" (default: "info"). Case-insensitive.
-- `NODE_ENV`: Standard Node.js environment variable used to indicate the current environment, such as "development, "test", or "production". If "production" a performance optimized logging format is used.
+- `NODE_ENV`: Environment setting that affects logging format:
+  - When set to "production": Uses standard pino JSON output format for optimal performance and machine parsing
+  - Other values (development/test/etc): Uses pretty-printed, human-readable output with colors and formatted timestamps
 
 ### Server Command Variables
 These variables affect the ENSRainbow server operation:
 - `PORT`: Server port (default: 3223)
+
 
 
 ## Service Management

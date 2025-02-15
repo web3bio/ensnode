@@ -14,7 +14,6 @@ import type {
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { labelhash } from "viem";
-/// <reference types="vitest" />
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createDatabase } from "../lib/database";
 import type { ENSRainbowDB } from "../lib/database";
@@ -33,12 +32,12 @@ describe("Server Command Tests", () => {
     await fs.rm(TEST_DB_DIR, { recursive: true, force: true });
 
     try {
-      db = await createDatabase(TEST_DB_DIR, "error");
+      db = await createDatabase(TEST_DB_DIR);
 
       // Initialize label count to be able to start server
       await db.put(LABELHASH_COUNT_KEY, "0");
 
-      app = await createServer(db, console);
+      app = await createServer(db);
 
       // Start the server on a different port than what ENSRainbow defaults to
       server = serve({
