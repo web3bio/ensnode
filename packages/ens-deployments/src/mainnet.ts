@@ -12,6 +12,10 @@ import { LegacyPublicResolver as eth_LegacyPublicResolver } from "./abis/eth/Leg
 import { NameWrapper as eth_NameWrapper } from "./abis/eth/NameWrapper";
 import { Registry as eth_Registry } from "./abis/eth/Registry";
 import { Resolver as eth_Resolver } from "./abis/eth/Resolver";
+import { ReverseRegistrar as eth_ReverseRegistrar } from "./abis/eth/ReverseRegistrar";
+import { ReverseRegistrarOld1 as eth_ReverseRegistrarOld1 } from "./abis/eth/ReverseRegistrarOld1";
+import { ReverseRegistrarOld2 as eth_ReverseRegistrarOld2 } from "./abis/eth/ReverseRegistrarOld2";
+
 
 // Subregistry ABIs for direct subnames of 'base.eth' on Base
 import { BaseRegistrar as base_BaseRegistrar } from "./abis/base/BaseRegistrar";
@@ -75,6 +79,21 @@ export default {
         address: "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401",
         startBlock: 16925608,
       },
+      ReverseRegistrar: {
+        abi: eth_ReverseRegistrar,
+        address: "0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb",
+        startBlock: 16925606,
+      },
+      ReverseRegistrarOld1: {
+        abi: eth_ReverseRegistrarOld1,
+        address: "0x9062C0A6Dbd6108336BcBe4593a3D1cE05512069",
+        startBlock: 3802330,
+      },
+      ReverseRegistrarOld2: {
+        abi: eth_ReverseRegistrarOld2,
+        address: "0x084b1c3C81545d370f3634392De611CaaBFf8148",
+        startBlock: 3327417,
+      }
     },
   },
 
