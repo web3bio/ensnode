@@ -75,3 +75,9 @@ export const makeRegistrationId = (registrarName: string, labelHash: Labelhash, 
     return node;
   }
 };
+
+export const makedomainTextId = (node: Hex, indexedKey: string) =>
+  [node, indexedKey].join("-");
+
+export const makedomainResolvedRecordsId = (node: Hex, coinType: bigint) =>
+  [node, coinType.toString()].join("-");

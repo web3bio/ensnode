@@ -2,8 +2,8 @@ import { type Context } from "ponder:registry";
 import schema from "ponder:schema";
 import type { Node } from "@ensnode/utils/types";
 import { Hex } from "viem";
-import { createSharedEventValues, upsertAccount, upsertResolver } from "../lib/db-helpers";
-import { makeResolverId } from "../lib/ids";
+import { createSharedEventValues, upsertAccount, upsertResolver, upsertDomainText, upsertDomainTextIgnore, upsertDomainResolvedRecords } from "../lib/db-helpers";
+import { makeResolverId, makedomainTextId, makedomainResolvedRecordsId } from "../lib/ids";
 import { hasNullByte, uniq } from "../lib/lib-helpers";
 import { EventWithArgs } from "../lib/ponder-helpers";
 import { OwnedName } from "../lib/types";
@@ -89,6 +89,19 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
           addr: newAddress,
         })
         .onConflictDoNothing(); // upsert for successful recovery when restarting indexing
+        
+      const resolved_id = makedomainResolvedRecordsId(node, coinType);
+      const resolvedRecord = await upsertDomainResolvedRecords(context, {
+        id: resolved_id,
+        domainId: node,
+        coinType: coinType,
+        createdAt: event.block.timestamp,
+      });
+
+      // upsert new key-value
+      await context.db
+        .update(schema.domainResolvedRecords, { id: resolved_id })
+        .set({ resolvedAddress: newAddress, updatedAt: event.block.timestamp});
     },
 
     async handleNameChanged({
@@ -188,7 +201,8 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
         value?: string;
       }>;
     }) {
-      const { node, key, value } = event.args;
+      const timestamp = event.block.timestamp;
+      const { node, indexedKey, key, value } = event.args;
       const id = makeResolverId(event.log.address, node);
       const resolver = await upsertResolver(context, {
         id,
@@ -215,7 +229,21 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
           value: value || null,
         })
         .onConflictDoNothing(); // upsert for successful recovery when restarting indexing
-    },
+    
+        // upsert domain_texts
+        const domain_texts_id = makedomainTextId(node, indexedKey);
+        const domainText = await upsertDomainTextIgnore(context, {
+          id: domain_texts_id,
+          domainId: node,
+          indexedKey: indexedKey,
+          createdAt: event.block.timestamp,
+        });
+
+        // upsert new key-value
+        await context.db
+          .update(schema.domainText, { id: domain_texts_id })
+          .set({ textKey: key, textValue: value, updatedAt: event.block.timestamp});
+      },
 
     async handleContenthashChanged({
       context,

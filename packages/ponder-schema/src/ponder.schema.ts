@@ -1,4 +1,4 @@
-import { index, onchainTable, relations } from "ponder";
+import { index, onchainTable, relations, primaryKey, uniqueIndex } from "ponder";
 import type { Address } from "viem";
 import { monkeypatchCollate } from "./collate";
 
@@ -151,6 +151,51 @@ export const resolverRelations = relations(resolver, ({ one, many }) => ({
   interfaceChangeds: many(interfaceChanged),
   authorisationChangeds: many(authorisationChanged),
   versionChangeds: many(versionChanged),
+}));
+
+export const domainText = onchainTable(
+  "domain_texts",
+  (t) => ({
+    id: t.text().primaryKey(),
+    domainId: t.hex("domain_id").notNull(),
+    indexedKey: t.text().notNull(),
+    textKey: t.text(),
+    textValue: t.text(),
+    createdAt: t.bigint("created_at"),
+    updatedAt: t.bigint("updated_at"),
+  }),
+  (table) => ({
+    domainTextIdx: uniqueIndex().on(table.domainId, table.indexedKey),
+  })
+);
+
+export const domainTextRelations = relations(domainText, ({ one }) => ({
+  domain: one(domain, {
+    fields: [domainText.domainId],
+    references: [domain.id],
+  }),
+}));
+
+export const domainResolvedRecords = onchainTable(
+  "resolved_records",
+  (t) => ({
+    id: t.text().primaryKey(),
+    domainId: t.hex("domain_id").notNull(),
+    coinType: t.bigint("coin_type").notNull(),
+    resolvedAddress: t.hex("resolved_address"),
+    createdAt: t.bigint("created_at"),
+    updatedAt: t.bigint("updated_at"),
+  }),
+  (table) => ({
+    domainResolvedRecordsIdx: uniqueIndex().on(table.domainId, table.coinType),
+  })
+);
+
+export const domainResolvedRecordsRelations = relations(domainResolvedRecords, ({ one }) => ({
+  domain: one(domain, {
+    fields: [domainResolvedRecords.domainId],
+    references: [domain.id],
+  }),
 }));
 
 /**
