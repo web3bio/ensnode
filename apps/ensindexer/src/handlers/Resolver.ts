@@ -121,6 +121,12 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
         address: event.log.address,
       });
 
+      // TODO: NameChanged both used in Resolver and ReverseRegistrar
+      const reverseClaimedRecord = await context.db.find(schema.reverseClaimed, { id: node });
+      if (reverseClaimedRecord?.nodeId === node) {
+        await context.db.update(schema.reverseClaimed, { id: node }).set({ name: name, updatedAt: event.block.timestamp});
+      }
+
       // log ResolverEvent
       await context.db
         .insert(schema.nameChanged)

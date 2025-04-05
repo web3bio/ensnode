@@ -54,3 +54,17 @@ export async function upsertDomainResolvedRecords(
 ) {
   return context.db.insert(schema.domainResolvedRecords).values(values).onConflictDoUpdate(values);
 }
+
+export async function upsertReverseClaimedRecordsIgnore(
+  context: Context,
+  values: typeof schema.reverseClaimed.$inferInsert,
+) {
+  return context.db.insert(schema.reverseClaimed).values(values).onConflictDoNothing();
+}
+
+export async function upsertReverseClaimedRecords(
+  context: Context,
+  values: typeof schema.reverseClaimed.$inferInsert,
+) {
+  return context.db.insert(schema.reverseClaimed).values(values).onConflictDoUpdate(values);
+}

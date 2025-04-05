@@ -23,6 +23,7 @@ import { EarlyAccessRegistrarController as base_EARegistrarController } from "./
 import { L2Resolver as base_L2Resolver } from "./abis/base/L2Resolver";
 import { RegistrarController as base_RegistrarController } from "./abis/base/RegistrarController";
 import { Registry as base_Registry } from "./abis/base/Registry";
+import { ReverseRegistrar as base_ReverseRegistrar } from "./abis/base/ReverseRegistrar";
 
 // Subregistry ABIs for direct subnames of 'linea.eth' on Linea
 import { BaseRegistrar as linea_BaseRegistrar } from "./abis/linea/BaseRegistrar";
@@ -145,6 +146,11 @@ export default {
         abi: base_RegistrarController,
         address: "0x4cCb0BB02FCABA27e82a56646E81d8c5bC4119a5",
         startBlock: 18619035,
+      },
+      ReverseRegistrar: {
+        abi: base_ReverseRegistrar,
+        address: "0x79EA96012eEa67A83431F1701B3dFf7e37F9E282",
+        startBlock: 17571485,
       },
     },
   },

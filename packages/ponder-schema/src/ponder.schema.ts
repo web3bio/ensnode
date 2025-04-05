@@ -153,6 +153,21 @@ export const resolverRelations = relations(resolver, ({ one, many }) => ({
   versionChangeds: many(versionChanged),
 }));
 
+export const reverseClaimed = onchainTable(
+  "reverse_claimed",
+  (t) => ({
+    id: t.text().primaryKey(),
+    nodeId: t.hex("node_id").notNull(),
+    addrId: t.hex("addr_id"),
+    name: t.text(),
+    createdAt: t.bigint("created_at"),
+    updatedAt: t.bigint("updated_at"),
+  }),
+  (table) => ({
+    reverseClaimedIdx: uniqueIndex().on(table.addrId),
+  })
+);
+
 export const domainText = onchainTable(
   "domain_texts",
   (t) => ({
