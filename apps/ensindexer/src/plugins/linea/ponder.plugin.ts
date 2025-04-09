@@ -41,6 +41,10 @@ export const config = createConfig({
       network: networkConfigForContract(chain, contracts.NameWrapper),
       abi: contracts.NameWrapper.abi,
     },
+    [namespace("ReverseRegistrar")]: {
+      network: networkConfigForContract(chain, contracts.ReverseRegistrar),
+      abi: contracts.ReverseRegistrar.abi,
+    },
   },
 });
 
@@ -52,5 +56,6 @@ export const activate = activateHandlers({
     import("./handlers/EthRegistrar"),
     import("./handlers/Resolver"),
     import("./handlers/NameWrapper"),
+    import("./handlers/ReverseRegistrar"),
   ],
 });

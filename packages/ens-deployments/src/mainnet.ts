@@ -31,6 +31,7 @@ import { EthRegistrarController as linea_EthRegistrarController } from "./abis/l
 import { NameWrapper as linea_NameWrapper } from "./abis/linea/NameWrapper";
 import { Registry as linea_Registry } from "./abis/linea/Registry";
 import { Resolver as linea_Resolver } from "./abis/linea/Resolver";
+import { ReverseRegistrar as linea_ReverseRegistrar } from "./abis/linea/ReverseRegistrar";
 
 /**
  * The "ENS deployment" configuration for 'mainnet'.
@@ -203,6 +204,11 @@ export default {
         abi: linea_NameWrapper,
         address: "0xA53cca02F98D590819141Aa85C891e2Af713C223",
         startBlock: 6682956,
+      },
+      ReverseRegistrar: {
+        abi: linea_ReverseRegistrar,
+        address: "0x08D3fF6E65f680844fd2465393ff6f0d742b67D5",
+        startBlock: 6682943,
       },
     },
   },

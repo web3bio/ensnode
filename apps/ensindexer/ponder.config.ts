@@ -12,7 +12,7 @@ import * as lineaEthPlugin from "./src/plugins/linea/ponder.plugin";
 // so ponder's typechecking of the indexing handlers and their event arguments is correct.
 ////////
 
-const ALL_PLUGINS = [baseEthPlugin] as const;
+const ALL_PLUGINS = [baseEthPlugin, lineaEthPlugin] as const;
 
 type AllPluginConfigs = MergedTypes<(typeof ALL_PLUGINS)[number]["config"]>;
 
