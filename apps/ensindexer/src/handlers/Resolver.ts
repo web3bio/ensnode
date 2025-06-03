@@ -209,6 +209,7 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
     }) {
       const timestamp = event.block.timestamp;
       const { node, indexedKey, key, value } = event.args;
+      const encodedKey = encodeURIComponent(key);
       const id = makeResolverId(event.log.address, node);
       const resolver = await upsertResolver(context, {
         id,
@@ -219,7 +220,7 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
       // upsert new key
       await context.db
         .update(schema.resolver, { id })
-        .set({ texts: uniq([...(resolver.texts ?? []), key]) });
+        .set({ texts: uniq([...(resolver.texts ?? []), encodedKey]) });
 
       // log ResolverEvent
       await context.db
@@ -227,7 +228,7 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
         .values({
           ...sharedEventValues(event),
           resolverId: id,
-          key,
+          key: encodedKey,
           // ponder's (viem's) event parsing produces empty string for some TextChanged events
           // (which is correct) but the subgraph records null for these instances, so we coalesce
           // falsy strings to null for compatibility
@@ -248,7 +249,7 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
         // upsert new key-value
         await context.db
           .update(schema.domainText, { id: domain_texts_id })
-          .set({ textKey: key, textValue: value, updatedAt: event.block.timestamp});
+          .set({ textKey: encodedKey, textValue: value, updatedAt: event.block.timestamp});
       },
 
     async handleContenthashChanged({
