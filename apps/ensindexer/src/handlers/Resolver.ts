@@ -207,50 +207,53 @@ export const makeResolverHandlers = (ownedName: OwnedName) => {
         value?: string;
       }>;
     }) {
-      const timestamp = event.block.timestamp;
-      const { node, indexedKey, key, value } = event.args;
-      const encodedKey = encodeURIComponent(key);
-      const id = makeResolverId(event.log.address, node);
-      const resolver = await upsertResolver(context, {
-        id,
-        domainId: node,
-        address: event.log.address,
-      });
+      try {
+        const timestamp = event.block.timestamp;
+        const { node, indexedKey, key, value } = event.args;
+      
+        const safeKey = encodeURIComponent((key ?? '').replace(/\u0000/g, ''));
+        const safeValue = encodeURIComponent((value ?? '').replace(/\u0000/g, ''));
+        const id = makeResolverId(event.log.address, node);
 
-      // upsert new key
-      await context.db
-        .update(schema.resolver, { id })
-        .set({ texts: uniq([...(resolver.texts ?? []), encodedKey]) });
-
-      // log ResolverEvent
-      await context.db
-        .insert(schema.textChanged)
-        .values({
-          ...sharedEventValues(event),
-          resolverId: id,
-          key: encodedKey,
-          // ponder's (viem's) event parsing produces empty string for some TextChanged events
-          // (which is correct) but the subgraph records null for these instances, so we coalesce
-          // falsy strings to null for compatibility
-          // ex: last TextChanged in tx 0x7fac4f1802c9b1969311be0412e6f900d531c59155421ff8ce1fda78b87956d0
-          value: value || null,
-        })
-        .onConflictDoNothing(); // upsert for successful recovery when restarting indexing
+        const resolver = await upsertResolver(context, {
+          id,
+          domainId: node,
+          address: event.log.address,
+        });
     
-        // upsert domain_texts
+        await context.db
+          .update(schema.resolver, { id })
+          .set({ texts: uniq([...(resolver.texts ?? []), safeKey]) });
+    
+        await context.db
+          .insert(schema.textChanged)
+          .values({
+            ...sharedEventValues(event),
+            resolverId: id,
+            key: safeKey,
+            value: safeValue,
+          })
+          .onConflictDoNothing();
+    
         const domain_texts_id = makedomainTextId(node, indexedKey);
-        const domainText = await upsertDomainTextIgnore(context, {
+        await upsertDomainTextIgnore(context, {
           id: domain_texts_id,
           domainId: node,
           indexedKey: indexedKey,
-          createdAt: event.block.timestamp,
+          createdAt: timestamp,
         });
-
-        // upsert new key-value
+    
         await context.db
           .update(schema.domainText, { id: domain_texts_id })
-          .set({ textKey: encodedKey, textValue: value, updatedAt: event.block.timestamp});
-      },
+          .set({
+            textKey: safeKey,
+            textValue: safeValue,
+            updatedAt: timestamp,
+          });
+      } catch (err) {
+        console.warn('⚠️ Skipping invalid UTF-8 event:', err);
+      }
+    },
 
     async handleContenthashChanged({
       context,
